@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package spiceserver;
+
+enum Flavour {
+  XYCE = 0;
+  NGSPICE = 1;
+  SPECTRE = 2;
+  HSPICE = 3;
+}
+
+// Request to run a SPICE simulation
+message SimulationRequest {
+  // The netlist content to simulate
+  string netlist = 1;
+
+  // Simulator to use (e.g., "ngspice", "ltspice", "xyce")
+  string simulator = 2;
+
+  // Additional simulator arguments
+  repeated string args = 3;
+}
+
+message OutputFile {
+  string path = 1;
+  bytes data = 2;
+}
+
+// Streaming response containing simulation output
+message SimulationResponse {
+  // Output line from the simulator
+  string output = 1;
+
+  // Whether this is stdout or stderr
+  enum StreamType {
+    STDOUT = 0;
+    STDERR = 1;
+  }
+  StreamType stream_type = 2;
+
+  // Exit code (only set in final message)
+  optional int32 exit_code = 3;
+
+  
+
+  // Whether this is the final message
+  bool done = 4;
+}
+
+// SpiceServer service definition
+service SpiceSimulator {
+  // Run a SPICE simulation and stream results back
+  rpc RunSimulation(SimulationRequest) returns (stream SimulationResponse);
+}

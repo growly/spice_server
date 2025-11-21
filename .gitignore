@@ -1,0 +1,32 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Generated files
+*.pb.h
+*.pb.cc
+*.grpc.pb.h
+*.grpc.pb.cc
+
+# Compiled files
+*.o
+*.so
+*.a
+*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+Makefile
+
+# Logs
+*.log
