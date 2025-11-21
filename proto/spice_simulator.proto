@@ -15,7 +15,7 @@ message SimulationRequest {
   string netlist = 1;
 
   // Simulator to use (e.g., "ngspice", "ltspice", "xyce")
-  string simulator = 2;
+  Flavour simulator = 2;
 
   // Additional simulator arguments
   repeated string args = 3;
