@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 
+#include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
 
 namespace spiceserver {
@@ -48,6 +49,18 @@ void SimulatorManager::CleanupPipes() {
 
 void SimulatorManager::SetNonBlocking(int fd) {
   fcntl(fd, F_SETFL, O_NONBLOCK);
+}
+
+bool SimulatorManager::RunSimulator(
+    const Flavour &flavour,
+    const std::vector<FileInfo> &files,
+    const std::vector<std::string> &additional_args) {
+
+  SimulatorRegistry this_should_be_singleton;
+
+  auto simulator_info = this_should_be_singleton.GetSimulatorInfo(flavour);
+
+  return true;
 }
 
 bool SimulatorManager::SpawnProcess(const std::string& command,

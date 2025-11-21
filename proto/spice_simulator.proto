@@ -5,10 +5,12 @@ package spiceserver;
 // Predefined Spice simulators, which must be installed and configured on the
 // server. Not all versions might be available.
 enum Flavour {
-  XYCE = 0;
-  NGSPICE = 1;
-  SPECTRE = 2;
-  HSPICE = 3;
+  UNSET = 0;
+
+  XYCE = 1;
+  NGSPICE = 2;
+  SPECTRE = 3;
+  HSPICE = 4;
 
   // RESERVED 4 - 100.
 
@@ -47,7 +49,7 @@ message VlsirInput {
 }
 
 message VerbatimFileInput {
-  repeated File files = 1;
+  repeated FileInfo files = 1;
 }
 
 // Request to run a SPICE simulation
@@ -73,7 +75,7 @@ message SimulationRequest {
   }
 
   // Additional simulator arguments.
-  repeated string additonal_args = 10;
+  repeated string additional_args = 10;
 }
 
 // Streaming response containing simulation output

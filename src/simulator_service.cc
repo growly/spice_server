@@ -10,27 +10,42 @@ namespace spiceserver {
 
 grpc::Status SimulatorServiceImpl::ListSimulators(
     grpc::ServerContext* context, const ListSimulatorsRequest* request,
-    ListSimulatorsResponse* reseponse) {}
+    ListSimulatorsResponse* reseponse) {
+  // Query the singleton/static SimulatorRegistry.
+}
 
 grpc::Status SimulatorServiceImpl::RunSimulation(
     grpc::ServerContext* context, const SimulationRequest* request,
     grpc::ServerWriter<SimulationResponse>* writer) {
   // Validate input
-  // if (request->simulator().empty()) {
-  //    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-  //                      "Simulator name is required");
-  //}
+  if (request->simulator() == Flavour::UNSET) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "Simulator flavour is required");
+  }
 
   SimulatorManager simulator_manager;
 
-  // TODO(aryap): Extract simulator command and args from request
-  std::string command = "echo";
-  std::vector<std::string> args = {"test"};
+  if (request->has_vlsir()) {
+    return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
+  } else if (request->has_verbatim_files()) {
 
-  // Spawn the subprocess
-  if (!simulator_manager.SpawnProcess(command, args)) {
-    return grpc::Status(grpc::StatusCode::INTERNAL,
-                        "Failed to spawn simulator process");
+    std::vector<FileInfo> file_infos(
+        request->verbatim_files().files().begin(),
+        request->verbatim_files().files().end());
+
+    std::vector<std::string> additional_args(
+        request->additional_args().begin(),
+        request->additional_args().end());
+
+    bool status = simulator_manager.RunSimulator(
+        request->simulator(), file_infos, additional_args);
+    if (!status) {
+      return grpc::Status(grpc::StatusCode::INTERNAL,
+                          "Failed to spawn simulator process");
+    }
+  } else {
+    return grpc::Status(
+        grpc::StatusCode::INVALID_ARGUMENT, "No circuit inputs.");
   }
 
   // Poll and stream output from the subprocess

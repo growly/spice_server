@@ -56,9 +56,9 @@ Or specify a custom address:
 ~/go/bin/grpcurl -plaintext localhost:50051 list
 ```
 
-In its initial form you can execute any command and that is bad:
+In its initial form you could execute any command and that is bad:
 ```bash
-~/go/bin/grpcurl -plaintext -d @     localhost:50051 spicetrader.SpiceSimulator/RunSimulation << EOM
+~/go/bin/grpcurl -plaintext -d @     localhost:50051 spiceserver.SpiceSimulator/RunSimulation << EOM
 {
   "netlist": "",
   "simulator": "cat",
@@ -66,3 +66,6 @@ In its initial form you can execute any command and that is bad:
 }
 EOM
 ```
+
+Now you either have to bundle up the file data into the request or (soon)
+provide a VLSIR proto for the netlists.
