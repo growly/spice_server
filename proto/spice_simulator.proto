@@ -2,28 +2,78 @@ syntax = "proto3";
 
 package spiceserver;
 
+// Predefined Spice simulators, which must be installed and configured on the
+// server. Not all versions might be available.
 enum Flavour {
   XYCE = 0;
   NGSPICE = 1;
   SPECTRE = 2;
   HSPICE = 3;
+
+  // RESERVED 4 - 100.
+
+  XYCE_7_8 = 1001;
+  XYCE_7_9 = 1002;
+  XYCE_7_10 = 1003;
+}
+
+message FileInfo {
+  string path = 1;
+  bytes data = 2;
+}
+
+message SimulatorInfo {
+  string name = 1;
+
+  string version = 2;
+
+  // The flavours which refer to this Simulator.
+  repeated Flavour flavours = 3;
+
+  string license = 4;
+
+  // Maybe.
+  string path = 5;
+}
+
+message ListSimulatorsRequest {
+}
+
+message ListSimulatorsResponse {
+  repeated SimulatorInfo simulators = 1;
+}
+
+message VlsirInput {
+}
+
+message VerbatimFileInput {
+  repeated File files = 1;
 }
 
 // Request to run a SPICE simulation
 message SimulationRequest {
-  // The netlist content to simulate
-  string netlist = 1;
-
   // Simulator to use (e.g., "ngspice", "ltspice", "xyce")
-  Flavour simulator = 2;
+  Flavour simulator = 1;
 
-  // Additional simulator arguments
-  repeated string args = 3;
-}
+  // The netlist content to simulate
+  // 
+  // Either the user specified everything in abstract VLSIR protobufs, or they
+  // provide the input files to provide to the simulator verbatim.
+  //
+  // TODO(aryap): I think how this works is that the first file is provided to
+  // the simulator and remaining files and put in their relative places in the
+  // temporary directory.
+  //
+  // I imagine that accepting raw files is a security risk that may be
+  // disallowed on some servers, so it will probably be easier to create a
+  // separate RPC endpoint for that altogether.
+  oneof inputs {
+    VlsirInput vlsir = 2;
+    VerbatimFileInput verbatim_files = 3;
+  }
 
-message OutputFile {
-  string path = 1;
-  bytes data = 2;
+  // Additional simulator arguments.
+  repeated string additonal_args = 10;
 }
 
 // Streaming response containing simulation output
@@ -51,4 +101,5 @@ message SimulationResponse {
 service SpiceSimulator {
   // Run a SPICE simulation and stream results back
   rpc RunSimulation(SimulationRequest) returns (stream SimulationResponse);
+  rpc ListSimulators(ListSimulatorsRequest) returns (ListSimulatorsResponse);
 }

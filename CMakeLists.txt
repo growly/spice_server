@@ -35,6 +35,8 @@ protobuf_generate(TARGET spice_proto LANGUAGE grpc
 add_executable(spice_server
     src/main.cc
     src/simulator_service.cc
+    src/simulator_manager.cc
+    src/simulator_registry.cc
 )
 
 target_include_directories(spice_server
