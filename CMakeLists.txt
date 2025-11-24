@@ -9,6 +9,33 @@ find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
+# VLSIR integration
+# -----------------
+
+# The central problem we face when integrating VLSIR protobufs is that they all
+# reference on another with imports relative to the root of the proto
+# directory, but in all cases where they are imported, they are kept in a
+# separate (typically "vlsir") directory. protoc generates symbols with
+# prefixes that seem to depend on the import path.
+#
+# We have to align paths and names for:
+#   1) the .proto files and their 'import' statements;
+#   2) the the generated C/C++ files and their '#include' statements; and
+#   3) the prefixes in names of symbols the linker will need to search for.
+#
+# Concretely, if you import "./vlsir/spice.proto" with -I. as the import path
+# to protoc, you get a very different set of symbol names to if you import
+# "spice.proto" and pass -Ivlsir to protoc.
+
+# For still-elusive reasons, using the protobuf cmake package's generation
+# doesn't allow us enough control to manage all three at once, since it deduces
+# output paths relatively. You can pass it import dirs, but you can't control
+# where the output goes finely enough. That is all I can say about this after
+# several hours fighting for my life. The following custom commands (borrowed
+# from BFG) allow us to invoke protoc independently controlling include
+# directories (1) and output directories (2), so that the symbol names are
+# correct (3) and the files are in the right places.
+
 function(get_unique_abs_paths_among out_var files)
   foreach(DIR ${files})
     get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
@@ -30,7 +57,6 @@ function(generate_grpc)
   cmake_parse_arguments(generate_grpc "${_options}" "${_singleargs}" "${_multiargs}" "${ARGN}")
 
   get_unique_abs_paths_among(_protobuf_include_path "${generate_grpc_IMPORT_DIRS}")
-  message(STATUS "include path " ${_protobuf_include_path})
 
   foreach(file ${generate_grpc_PROTO_FILES})
     message(STATUS "Generating gRPC C++ service from: ${file} -> ${generate_grpc_OUT_DIR}")
