@@ -30,35 +30,48 @@ target_link_libraries(spice_proto
         protobuf::libprotobuf
         gRPC::grpc++
 )
-target_include_directories(spice_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Generate protobuf and gRPC code
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
-protobuf_generate(TARGET spice_proto LANGUAGE cpp IMPORT_DIRS ${VLSIR_PROTO_DIR})
-protobuf_generate(TARGET spice_proto LANGUAGE grpc
-    GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
-    PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
-    IMPORT_DIRS ${VLSIR_PROTO_DIR}
+set(GENERATED_PROTO_SRC)
+protobuf_generate(
+  TARGET spice_proto
+  LANGUAGE cpp
+  IMPORT_DIRS ${VLSIR_PROTO_DIR} 
+  OUT_VAR GENERATED_PROTO_SRC
+)
+protobuf_generate(
+  TARGET spice_proto 
+  LANGUAGE grpc
+  GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+  PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
+  IMPORT_DIRS ${VLSIR_PROTO_DIR}
 )
 
 # Main executable
 add_executable(spice_server
-    src/main.cc
-    src/simulator_service.cc
-    src/simulator_manager.cc
-    src/simulator_registry.cc
+  src/main.cc
+  src/simulator_service.cc
+  src/simulator_manager.cc
+  src/simulator_registry.cc
+)
+
+target_include_directories(
+  spice_proto
+  PUBLIC 
+    ${CMAKE_CURRENT_BINARY_DIR} 
 )
 
 target_include_directories(spice_server
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(spice_server
-    PRIVATE
-        spice_proto
-        gRPC::grpc++
-        gRPC::grpc++_reflection
-        protobuf::libprotobuf
-        Threads::Threads
+  PRIVATE
+    spice_proto
+    gRPC::grpc++
+    gRPC::grpc++_reflection
+    protobuf::libprotobuf
+    Threads::Threads
 )
