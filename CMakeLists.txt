@@ -9,10 +9,19 @@ find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
+get_filename_component(VLSIR_PROTO_DIR "vlsir" ABSOLUTE)
+file(GLOB_RECURSE VLSIR_PROTO_SRC "${VLSIR_PROTO_DIR}/*.proto")
+file(GLOB_RECURSE SPICE_SERVER_PROTO_SRC "proto/*.proto")
+
 # Proto file
 set(PROTO_FILES
-    proto/spice_simulator.proto
+    ${SPICE_SERVER_PROTO_SRC}
+    ${VLSIR_PROTO_SRC}
 )
+
+foreach(_file ${PROTO_FILES})
+  message(STATUS "proto file: " ${_file})
+endforeach()
 
 # Generate C++ code from proto files
 add_library(spice_proto ${PROTO_FILES})
@@ -25,10 +34,11 @@ target_include_directories(spice_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Generate protobuf and gRPC code
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
-protobuf_generate(TARGET spice_proto LANGUAGE cpp)
+protobuf_generate(TARGET spice_proto LANGUAGE cpp IMPORT_DIRS ${VLSIR_PROTO_DIR})
 protobuf_generate(TARGET spice_proto LANGUAGE grpc
     GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
     PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
+    IMPORT_DIRS ${VLSIR_PROTO_DIR}
 )
 
 # Main executable

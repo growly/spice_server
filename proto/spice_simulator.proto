@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package spiceserver;
 
+import "spice.proto";
+
 // Predefined Spice simulators, which must be installed and configured on the
 // server. Not all versions might be available.
 enum Flavour {
@@ -45,9 +47,6 @@ message ListSimulatorsResponse {
   repeated SimulatorInfo simulators = 1;
 }
 
-message VlsirInput {
-}
-
 message VerbatimFileInput {
   repeated FileInfo files = 1;
 }
@@ -70,7 +69,7 @@ message SimulationRequest {
   // disallowed on some servers, so it will probably be easier to create a
   // separate RPC endpoint for that altogether.
   oneof inputs {
-    VlsirInput vlsir = 2;
+    vlsir.spice.SimInput vlsir_sim_input = 2;
     VerbatimFileInput verbatim_files = 3;
   }
 
