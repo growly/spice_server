@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package spice_server;
+package spiceserver;
 
 import "spice.proto";
 
@@ -69,7 +69,7 @@ message SimulationRequest {
   // disallowed on some servers, so it will probably be easier to create a
   // separate RPC endpoint for that altogether.
   oneof inputs {
-    vlsir.spice.SimInput vlsir_sim_input = 2;
+    //vlsir.spice.SimInput vlsir_sim_input = 2;
     VerbatimFileInput verbatim_files = 3;
   }
 

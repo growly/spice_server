@@ -9,75 +9,151 @@ find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
-# If you can get the cmake protobuf package generation function to
-# simultaneously:
-# - include vlsir protos in the path for spice server protos;
-# - generate C++ files with include paths that point to where the files
-# actually went; and
-# - not have generate name symbol name conflicts, since these also depend on
-# the generating path;
-# then please fix this shit and tell me how you did it.
-#
-# The current problem is that proto/spice_simulator.proto can find
-# vlsir/spice.proto, but when building vlsir/*.proto files, symbols do not
-# include a "vlsir::" prefix. It looks like "utils.proto" types are given the
-# "vlsir::" prefix but this isn't included unless that files is included with
-# the "vlsir/" in front of it in the import path.
+function(get_unique_abs_paths_among out_var files)
+  foreach(DIR ${files})
+    get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+    list(FIND _unique_dirs ${ABS_PATH} _contains_already)
+    if(${_contains_already} EQUAL -1)
+        list(APPEND _unique_dirs --proto_path=${ABS_PATH})
+    endif()
+  endforeach()
+  set("${out_var}" "${_unique_dirs}" PARENT_SCOPE)
+endfunction()
 
-get_filename_component(VLSIR_PROTO_DIR "vlsir" ABSOLUTE)
-file(GLOB_RECURSE VLSIR_PROTO_SRC "${VLSIR_PROTO_DIR}/*.proto")
-file(GLOB_RECURSE SPICE_SERVER_PROTO_SRC "proto/*.proto")
-
-foreach(_file ${SPICE_SERVER_PROTO_SRC})
-  message(STATUS "proto file: " ${_file})
-endforeach()
-foreach(_file ${VLSIR_PROTO_SRC})
-  message(STATUS "proto file: " ${_file})
-endforeach()
-
-# Generate protobuf and gRPC code
-set(GENERATED_VLSIR_SRC)
-protobuf_generate(
-  LANGUAGE cpp
-  PROTOS ${VLSIR_PROTO_SRC}
-  OUT_VAR GENERATED_VLSIR_SRC
-  PROTOC_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}
-  APPEND_PATH OFF
-)
-set(GENERATED_PROTO_SRC)
-protobuf_generate(
-  LANGUAGE cpp
-  PROTOS ${SPICE_SERVER_PROTO_SRC}
-  OUT_VAR GENERATED_PROTO_SRC
-  PROTOC_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}
-  APPEND_PATH OFF
-  IMPORT_DIRS "vlsir"
-)
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
-set(GENERATED_GRPC_SRC)
-protobuf_generate(
-  LANGUAGE grpc
-  PROTOS ${SPICE_SERVER_PROTO_SRC}
-  GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
-  PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
-  OUT_VAR GENERATED_GRPC_SRC
-  PROTOC_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}
-  IMPORT_DIRS "vlsir"
-)
+set(GENERATED_GRPC_HDRS)
+set(GENERATED_GRPC_SRCS)
+function(generate_grpc)
+  set(_options)
+  set(_singleargs PROTO_SRC_ROOT OUT_DIR)
+  set(_multiargs PROTO_FILES IMPORT_DIRS)
+  cmake_parse_arguments(generate_grpc "${_options}" "${_singleargs}" "${_multiargs}" "${ARGN}")
 
-set(GENERATED_ALL_SRC
-  ${GENERATED_VLSIR_SRC}
-  ${GENERATED_PROTO_SRC}
-  ${GENERATED_GRPC_SRC}
-)
+  get_unique_abs_paths_among(_protobuf_include_path "${generate_grpc_IMPORT_DIRS}")
+  message(STATUS "include path " ${_protobuf_include_path})
 
-# Generate C++ code from proto files
-add_library(spice_proto ${GENERATED_ALL_SRC})
-target_link_libraries(spice_proto
-  PUBLIC
-    protobuf::libprotobuf
-    gRPC::grpc++
-)
+  foreach(file ${generate_grpc_PROTO_FILES})
+    message(STATUS "Generating gRPC C++ service from: ${file} -> ${generate_grpc_OUT_DIR}")
+    file(RELATIVE_PATH relative_file ${generate_grpc_PROTO_SRC_ROOT} ${file})
+    get_filename_component(proto_dir ${relative_file} DIRECTORY)
+    get_filename_component(proto_name ${relative_file} NAME_WE)
+    set(proto_hdr ${generate_grpc_OUT_DIR}/${proto_dir}/${proto_name}.pb.h)
+    set(proto_src ${generate_grpc_OUT_DIR}/${proto_dir}/${proto_name}.pb.cc)
+    set(grpc_hdr ${generate_grpc_OUT_DIR}/${proto_dir}/${proto_name}.grpc.pb.h)
+    set(grpc_src ${generate_grpc_OUT_DIR}/${proto_dir}/${proto_name}.grpc.pb.cc)
+    message(STATUS \tfile=${file})
+    message(STATUS \trelative_file=${relative_file})
+    message(STATUS \tproto_src_root=${generate_grpc_PROTO_SRC_ROOT})
+    message(STATUS \tproto_dir=${proto_dir})
+    message(STATUS \tproto_hdr=${proto_hdr})
+    message(STATUS \tproto_src=${proto_src})
+    message(STATUS \tgrpc_hdr=${grpc_hdr})
+    message(STATUS \tgrpc_src=${grpc_src})
+    message(STATUS \tadditional_includes=${_protobuf_include_path})
+    # VERBATIM might break stuff here. Try quoting args and removing.
+    add_custom_command(
+      OUTPUT "${proto_hdr}" "${proto_src}" "${grpc_hdr}" "${grpc_src}"
+      COMMAND protobuf::protoc
+      ARGS --grpc_out=${generate_grpc_OUT_DIR}
+           --cpp_out=${generate_grpc_OUT_DIR}
+           --proto_path=${generate_grpc_PROTO_SRC_ROOT}
+            ${_protobuf_include_path}
+            #--plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE}
+            --plugin=protoc-gen-grpc=${grpc_cpp_plugin_location}
+           "${file}"
+      DEPENDS ${file} protobuf::protoc
+      COMMENT "Generate gRPC C++ service/protocol buffers for ${file}"
+      VERBATIM)
+    list(APPEND GENERATED_GRPC_HDRS "${proto_hdr}")
+    list(APPEND GENERATED_GRPC_SRCS "${proto_src}")
+    list(APPEND GENERATED_GRPC_HDRS "${grpc_hdr}")
+    list(APPEND GENERATED_GRPC_SRCS "${grpc_src}")
+  endforeach()
+
+  set(GENERATED_GRPC_HDRS ${GENERATED_GRPC_HDRS} PARENT_SCOPE)
+  set(GENERATED_GRPC_SRCS ${GENERATED_GRPC_SRCS} PARENT_SCOPE)
+endfunction()
+
+set(GENERATED_PROTO_SRCS)
+set(GENERATED_PROTO_HDRS)
+function(generate_protos)
+  set(_options)
+  set(_singleargs PROTO_SRC_ROOT OUT_DIR)
+  set(_multiargs PROTO_FILES IMPORT_DIRS)
+  cmake_parse_arguments(generate_protos "${_options}" "${_singleargs}" "${_multiargs}" "${ARGN}")
+
+  get_unique_abs_paths_among(_protobuf_include_path "${generate_protos_IMPORT_DIRS}")
+
+  foreach(file ${generate_protos_PROTO_FILES})
+    message(STATUS "Generating C++ proto from: ${file} -> ${generate_protos_OUT_DIR}")
+    # Get the relative path of the proto to the source dir root.
+    file(RELATIVE_PATH relative_file ${generate_protos_PROTO_SRC_ROOT} ${file})
+    get_filename_component(proto_dir ${relative_file} DIRECTORY)
+    get_filename_component(proto_name ${relative_file} NAME_WE)
+    set(proto_hdr ${generate_protos_OUT_DIR}/${proto_dir}/${proto_name}.pb.h)
+    set(proto_src ${generate_protos_OUT_DIR}/${proto_dir}/${proto_name}.pb.cc)
+    message(STATUS \tfile=${file})
+    message(STATUS \trelative_file=${relative_file})
+    message(STATUS \tproto_dir=${proto_dir})
+    message(STATUS \tproto_hdr=${proto_hdr})
+    message(STATUS \tproto_src=${proto_src})
+    message(STATUS \tadditional_includes=${_protobuf_include_path})
+    add_custom_command(
+      OUTPUT ${proto_hdr} ${proto_src}
+      COMMAND protobuf::protoc
+      "--proto_path=${generate_protos_PROTO_SRC_ROOT}"
+      ${_protobuf_include_path}
+      "--cpp_out=${generate_protos_OUT_DIR}"
+      ${file}
+      DEPENDS ${file} protobuf::protoc
+      COMMENT "Generate C++ protocol buffer for ${file}"
+      VERBATIM)
+    list(APPEND GENERATED_PROTO_HDRS ${proto_hdr})
+    list(APPEND GENERATED_PROTO_SRCS ${proto_src})
+  endforeach()
+
+  set(GENERATED_PROTO_HDRS ${GENERATED_PROTO_HDRS} PARENT_SCOPE)
+  set(GENERATED_PROTO_SRCS ${GENERATED_PROTO_SRCS} PARENT_SCOPE)
+endfunction()
+
+# Set the VLSIR proto source directory and output directory, creating it if it
+# doesn't exist. Generate protos into that output directory and save the list
+# of generated files.
+set(VLSIR_SRC_DIR ${PROJECT_SOURCE_DIR}/vlsir)
+file(GLOB_RECURSE VLSIR_SRC "${VLSIR_SRC_DIR}/*.proto")
+set(VLSIR_OUT_DIR ${PROJECT_BINARY_DIR}/vlsir)
+file(MAKE_DIRECTORY ${VLSIR_OUT_DIR})
+generate_protos(
+  PROTO_SRC_ROOT ${VLSIR_SRC_DIR}
+  PROTO_FILES "${VLSIR_SRC}"
+  OUT_DIR ${VLSIR_OUT_DIR})
+set(VLSIR_GENERATED_HDRS ${GENERATED_PROTO_HDRS})
+set(VLSIR_GENERATED_SRCS ${GENERATED_PROTO_SRCS})
+
+set(PROTO_SRC_DIR ${PROJECT_SOURCE_DIR}/proto)
+file(GLOB_RECURSE PROTO_SRC "${PROTO_SRC_DIR}/*.proto")
+set(PROTO_OUT_DIR ${PROJECT_BINARY_DIR}/proto)
+file(MAKE_DIRECTORY ${PROTO_OUT_DIR})
+set(GENERATED_GRPC_SRCS)
+set(GENERATED_GRPC_HDRS)
+# This will also make protos for definitions in the files with service
+# definitions (the same .proto can't be attached to a custom build rule for a
+# proto and grpc step at the same time).
+generate_grpc(
+  PROTO_SRC_ROOT ${PROTO_SRC_DIR}
+  PROTO_FILES "${PROTO_SRC}"
+  OUT_DIR ${PROTO_OUT_DIR}
+  IMPORT_DIRS "${VLSIR_SRC_DIR}")
+set(GRPC_GENERATED_HDRS ${GENERATED_GRPC_HDRS})
+set(GRPC_GENERATED_SRCS ${GENERATED_GRPC_SRCS})
+
+add_library(proto_lib SHARED 
+  ${VLSIR_GENERATED_SRCS}
+  ${VLSIR_GENERATED_HDRS}
+  ${GRPC_GENERATED_SRCS}
+  ${GRPC_GENERATED_HDRS})
+set_target_properties(proto_lib PROPERTIES VERSION ${PROJECT_VERSION})
+target_include_directories(proto_lib PRIVATE ${VLSIR_OUT_DIR})
 
 # Main executable
 add_executable(spice_server
@@ -88,23 +164,17 @@ add_executable(spice_server
 )
 
 target_include_directories(
-  spice_proto
-  PUBLIC 
-    ${CMAKE_CURRENT_BINARY_DIR} 
-    ${CMAKE_CURRENT_BINARY_DIR}/vlsir
-)
-
-target_include_directories(
   spice_server
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_BINARY_DIR}/proto
-    ${CMAKE_CURRENT_BINARY_DIR}/vlsir
+    ${PROJECT_BINARY_DIR}
+    ${VLSIR_OUT_DIR}
+    ${PROTO_OUT_DIR}
 )
 
 target_link_libraries(spice_server
   PRIVATE
-    spice_proto
+    proto_lib
     gRPC::grpc++
     gRPC::grpc++_reflection
     protobuf::libprotobuf

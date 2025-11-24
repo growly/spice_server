@@ -25,9 +25,10 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
 
   SimulatorManager simulator_manager;
 
-  if (request->has_vlsir()) {
-    return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
-  } else if (request->has_verbatim_files()) {
+  //if (request->has_vlsir()) {
+  //  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
+  //} else
+  if (request->has_verbatim_files()) {
 
     std::vector<FileInfo> file_infos(
         request->verbatim_files().files().begin(),
