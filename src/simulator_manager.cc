@@ -4,11 +4,15 @@
 #include <poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <cstdlib>
 
 #include <array>
 #include <cstring>
 #include <glog/logging.h>
 #include <vector>
+
+#include <absl/status/status.h>
+#include <absl/status/statusor.h>
 
 #include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
@@ -55,10 +59,8 @@ bool SimulatorManager::RunSimulator(
     const Flavour &flavour,
     const std::vector<FileInfo> &files,
     const std::vector<std::string> &additional_args) {
-
-  SimulatorRegistry this_should_be_singleton;
-
-  auto simulator_info = this_should_be_singleton.GetSimulatorInfo(flavour);
+  auto simulator_info =
+      SimulatorRegistry::GetInstance().GetSimulatorInfo(flavour);
 
   return true;
 }
@@ -203,5 +205,19 @@ int SimulatorManager::WaitForCompletion() {
 }
 
 bool SimulatorManager::IsRunning() const { return process_spawned_; }
+
+// TODO(aryap): We need a background process to expire (and delete) old
+// temporary directories after some timeout.
+absl::StatusOr<std::string> SimulatorManager::CreateTemporaryDirectory() {
+  static char kTemplate[] = "/tmp/spice_server.XXXXXX";
+  char *directory_name = mkdtemp(kTemplate);
+  if (directory_name == nullptr) {
+    // Problem.
+    return absl::UnavailableError("mkdtemp failed to make temporary directory");
+  }
+  // Is the char* going to leak?
+  std::string name(directory_name);
+  return name;
+}
 
 }  // namespace spiceserver

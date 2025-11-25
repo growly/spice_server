@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
 
-  spiceserver::SimulatorRegistry registry;
+  spiceserver::SimulatorRegistry &registry =
+      spiceserver::SimulatorRegistry::GetInstance();
 
   // Log configuration file if provided
   if (!FLAGS_static_installs.empty()) {
@@ -54,8 +55,10 @@ int main(int argc, char **argv) {
     spiceserver::Utility::ReadTextProtoOrDie(
         FLAGS_static_installs, &static_installs_pb);
 
-    LOG(INFO) << "Installed: " << std::endl << registry.ReportInstalled();
+    registry.RegisterSimulators(static_installs_pb);
   }
+
+  LOG(INFO) << "Installed: " << std::endl << registry.ReportInstalled();
 
   std::string server_address = absl::StrCat("0.0.0.0:", FLAGS_port);
 

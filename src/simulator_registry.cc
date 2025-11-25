@@ -7,13 +7,53 @@
 
 #include <absl/strings/str_cat.h>
 
+#include <gflags/gflags.h>
+#include <glog/logging.h>
+
+#include "proto/spice_simulator.pb.h"
+
+DEFINE_bool(find_simulators, true, "Search for known simulators in $PATH)");
+
 namespace spiceserver {
 
-SimulatorRegistry::SimulatorRegistry() { RegisterDefaultSimulators(); }
+SimulatorRegistry::SimulatorRegistry() { 
+  LOG(INFO) << "Initialising simulator registry";
+  if (FLAGS_find_simulators) {
+    LOG(INFO) << "Searching for known simulators in $PATH";
+    RegisterDefaultSimulators();
+  }
+}
 
 void SimulatorRegistry::RegisterSimulator(Flavour flavour,
                                           const SimulatorInfo& info) {
   simulators_[flavour] = info;
+}
+
+void SimulatorRegistry::RegisterSimulators(
+    const StaticInstalls &static_installs_pb) {
+  // This is the protobuf type, not the type in this class:
+  for (const spiceserver::SimulatorInfo &info_pb :
+       static_installs_pb.installed()) {
+    SimulatorRegistry::SimulatorInfo info {
+      .path = info_pb.path(),
+      .version = info_pb.version(),
+      .name = info_pb.name(),
+      .license = info_pb.license(),
+    };
+    for (const auto &flavour : info_pb.flavours()) {
+      // TODO(aryap): Why do I have to static_cast a Flavour (here interpreted
+      // as an int) to a Flavour (somehow not interpreted as an int)?
+      // Why does this fail?
+      // static_assert(std::is_same<decltype(flavour),
+      //                            spiceserver::Flavour>::value, "wat");
+      Flavour copy = static_cast<Flavour>(flavour);
+      info.flavours.push_back(copy);
+    }
+
+    for (const auto &flavour : info.flavours) {
+      RegisterSimulator(flavour, info);
+    }
+  }
 }
 
 std::optional<std::string> SimulatorRegistry::GetSimulatorPath(
@@ -83,7 +123,9 @@ std::optional<std::string> SimulatorRegistry::FindExecutableInPath(
 std::string SimulatorRegistry::ReportInstalled() const {
   std::stringstream ss;
   for (const auto &entry : simulators_) {
+    const Flavour &flavour = entry.first;
     const SimulatorInfo &info = entry.second;
+    ss << "[" << Flavour_Name(flavour) << "] ";
     ss << "Simulator: " << info.name;
     ss << " version: " << info.version << std::endl;
     ss << "Path: " << info.path << std::endl;

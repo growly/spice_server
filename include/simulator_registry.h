@@ -6,11 +6,14 @@
 #include <string>
 #include <vector>
 
+#include <gflags/gflags.h>
+
 #include "proto/spice_simulator.pb.h"
 
 namespace spiceserver {
 
-// Registry for mapping Flavour enums to simulator executables and metadata
+// Registry for all installed Spice simulators, their versions, paths, etc.
+// This is a singleton.
 class SimulatorRegistry {
  public:
   struct SimulatorInfo {
@@ -21,11 +24,17 @@ class SimulatorRegistry {
     std::vector<Flavour> flavours;
   };
 
-  SimulatorRegistry();
-  ~SimulatorRegistry() = default;
+  SimulatorRegistry(const SimulatorRegistry&) = delete;
+  SimulatorRegistry& operator=(const SimulatorRegistry&) = delete;
+  static SimulatorRegistry& GetInstance() {
+    static SimulatorRegistry instance;
+    return instance;
+  }
 
   // Register a simulator with its path and metadata
   void RegisterSimulator(Flavour flavour, const SimulatorInfo& info);
+
+  void RegisterSimulators(const StaticInstalls &static_installs_pb);
 
   // Get the path for a given simulator flavour
   std::optional<std::string> GetSimulatorPath(Flavour flavour) const;
@@ -42,6 +51,9 @@ class SimulatorRegistry {
   std::string ReportInstalled() const;
 
  private:
+  SimulatorRegistry();
+  ~SimulatorRegistry() = default;
+
   void RegisterDefaultSimulators();
   std::optional<std::string> FindExecutableInPath(
       const std::string& executable_name) const;

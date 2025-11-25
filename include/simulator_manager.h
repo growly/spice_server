@@ -6,13 +6,16 @@
 #include <string>
 #include <vector>
 
+#include <absl/status/statusor.h>
+
+#include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
 
 // So you don't know how to do subprocess management and you just asked AI to
 // write it all for you? Crazy enough to work. Here's what's happening at the
-// system interface:
+// system interface. We:
 //
-//  - we ask the kernel for two new pipes, and for each it returns a file
+//  - ask the kernel for two new pipes, and for each it returns a file
 //  descriptor for the read end and another for the write end
 //  - fork the process
 //    - in the child (the one that will run the simulator), tie stderr and
@@ -73,6 +76,8 @@ class SimulatorManager {
 
   void CleanupPipes();
   void SetNonBlocking(int fd);
+
+  absl::StatusOr<std::string> CreateTemporaryDirectory();
 
   pid_t pid_;
   int stdout_pipe_[2];
