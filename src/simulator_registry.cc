@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include <absl/strings/str_cat.h>
+
 namespace spiceserver {
 
 SimulatorRegistry::SimulatorRegistry() { RegisterDefaultSimulators(); }
@@ -76,6 +78,21 @@ std::optional<std::string> SimulatorRegistry::FindExecutableInPath(
   }
 
   return std::nullopt;
+}
+
+std::string SimulatorRegistry::ReportInstalled() const {
+  std::stringstream ss;
+  for (const auto &entry : simulators_) {
+    const SimulatorInfo &info = entry.second;
+    ss << "Simulator: " << info.name;
+    ss << " version: " << info.version << std::endl;
+    ss << "Path: " << info.path << std::endl;
+    if (info.license != "") {
+      ss << "License: " << info.license << std::endl;
+    }
+    ss << std::endl;
+  }
+  return ss.str();
 }
 
 void SimulatorRegistry::RegisterDefaultSimulators() {

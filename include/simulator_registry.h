@@ -39,6 +39,8 @@ class SimulatorRegistry {
   // Check if a simulator is registered
   bool IsRegistered(Flavour flavour) const;
 
+  std::string ReportInstalled() const;
+
  private:
   void RegisterDefaultSimulators();
   std::optional<std::string> FindExecutableInPath(

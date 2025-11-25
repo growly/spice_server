@@ -7,7 +7,7 @@
 
 #include <array>
 #include <cstring>
-#include <iostream>
+#include <glog/logging.h>
 #include <vector>
 
 #include "simulator_registry.h"
@@ -108,7 +108,7 @@ bool SimulatorManager::SpawnProcess(const std::string& command,
     execvp(command.c_str(), argv.data());
 
     // If execvp returns, it failed
-    std::cerr << "Failed to execute command: " << strerror(errno) << std::endl;
+    LOG(ERROR) << "Failed to execute command: " << strerror(errno);
     _exit(1);
   }
 

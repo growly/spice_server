@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
+find_package(glog REQUIRED)
+find_package(gflags REQUIRED)
+find_package(absl REQUIRED)
 
 # VLSIR integration
 # -----------------
@@ -173,6 +176,8 @@ generate_grpc(
 set(GRPC_GENERATED_HDRS ${GENERATED_GRPC_HDRS})
 set(GRPC_GENERATED_SRCS ${GENERATED_GRPC_SRCS})
 
+# Build all GRPC service files and proto files (for both ours and VLSIRs types)
+# together.
 add_library(proto_lib SHARED 
   ${VLSIR_GENERATED_SRCS}
   ${VLSIR_GENERATED_HDRS}
@@ -205,4 +210,12 @@ target_link_libraries(spice_server
     gRPC::grpc++_reflection
     protobuf::libprotobuf
     Threads::Threads
+    glog::glog
+    gflags
+    absl::strings
+    absl::status
+    absl::statusor
+    absl::flat_hash_map
+    absl::flat_hash_set
+    absl::time
 )

@@ -40,6 +40,11 @@ message SimulatorInfo {
   string path = 5;
 }
 
+// Statically-configured simulator installations.
+message StaticInstalls {
+  repeated SimulatorInfo installed = 1;
+}
+
 message ListSimulatorsRequest {
 }
 

@@ -12,6 +12,8 @@ grpc::Status SimulatorServiceImpl::ListSimulators(
     grpc::ServerContext* context, const ListSimulatorsRequest* request,
     ListSimulatorsResponse* reseponse) {
   // Query the singleton/static SimulatorRegistry.
+
+  return grpc::Status::OK;
 }
 
 grpc::Status SimulatorServiceImpl::RunSimulation(
@@ -25,15 +27,12 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
 
   SimulatorManager simulator_manager;
 
-  //if (request->has_vlsir()) {
-  //  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
-  //} else
-  if (request->has_verbatim_files()) {
-
+  if (request->has_vlsir_sim_input()) {
+    return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
+  } else if (request->has_verbatim_files()) {
     std::vector<FileInfo> file_infos(
         request->verbatim_files().files().begin(),
         request->verbatim_files().files().end());
-
     std::vector<std::string> additional_args(
         request->additional_args().begin(),
         request->additional_args().end());

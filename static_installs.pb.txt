@@ -1,0 +1,8 @@
+installed {
+  name: "Xyce"
+  version: "7.10"
+  flavours: XYCE
+  flavours: XYCE_7_10
+  license: ""
+  path: "/home/arya/XyceInstall/bin/Xyce"
+}
