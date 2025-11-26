@@ -47,9 +47,9 @@ class SimulatorManager {
   // Creates a temporary directory, writes the given files to disk, calls the
   // simulator (with any additional args). Results will then be available
   // through PollAndReadOutput.
-  bool RunSimulator(const Flavour &flavour,
-                    const std::vector<FileInfo> &files,
-                    const std::vector<std::string> &additional_args);
+  absl::Status RunSimulator(const Flavour &flavour,
+                            const std::vector<FileInfo> &files,
+                            const std::vector<std::string> &additional_args);
 
   // Same deal, but all netlist info is provided through VLSIR protobufs. This
   // requires an additional netlisting step, using a netlister appropriate to
@@ -71,12 +71,15 @@ class SimulatorManager {
  private:
   // Spawns a subprocess with the given command and arguments.
   // Returns true on success, false on failure.
-  bool SpawnProcess(const std::string &command,
-                    const std::vector<std::string> &args);
+  absl::Status SpawnProcess(const std::string &command,
+                            const std::vector<std::string> &args,
+                            const std::string &directory);
 
   void CleanupPipes();
   void SetNonBlocking(int fd);
 
+  absl::StatusOr<std::string> PrepareVerbatimInputsOnDisk(
+      const std::vector<FileInfo> &files);
   absl::StatusOr<std::string> CreateTemporaryDirectory();
 
   pid_t pid_;

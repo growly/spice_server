@@ -37,9 +37,9 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
         request->additional_args().begin(),
         request->additional_args().end());
 
-    bool status = simulator_manager.RunSimulator(
+    auto status = simulator_manager.RunSimulator(
         request->simulator(), file_infos, additional_args);
-    if (!status) {
+    if (!status.ok()) {
       return grpc::Status(grpc::StatusCode::INTERNAL,
                           "Failed to spawn simulator process");
     }

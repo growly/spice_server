@@ -127,12 +127,11 @@ std::string SimulatorRegistry::ReportInstalled() const {
     const SimulatorInfo &info = entry.second;
     ss << "[" << Flavour_Name(flavour) << "] ";
     ss << "Simulator: " << info.name;
-    ss << " version: " << info.version << std::endl;
+    ss << " Version: " << info.version << std::endl;
     ss << "Path: " << info.path << std::endl;
     if (info.license != "") {
       ss << "License: " << info.license << std::endl;
     }
-    ss << std::endl;
   }
   return ss.str();
 }
@@ -192,8 +191,7 @@ void SimulatorRegistry::RegisterDefaultSimulators() {
 
   // For version-specific Xyce entries, we can register them with the same
   // path if found, or look for version-specific installations
-  // This is a placeholder - in a real implementation, you might check
-  // specific installation directories or query version information
+  // TODO(aryap): This is bogus.
   if (xyce_path) {
     SimulatorInfo xyce_7_8_info{
         .path = *xyce_path,

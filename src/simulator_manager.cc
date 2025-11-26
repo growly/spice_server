@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 
 #include <array>
 #include <cstring>
@@ -13,6 +15,7 @@
 
 #include <absl/status/status.h>
 #include <absl/status/statusor.h>
+#include <absl/strings/str_join.h>
 
 #include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
@@ -55,37 +58,86 @@ void SimulatorManager::SetNonBlocking(int fd) {
   fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
-bool SimulatorManager::RunSimulator(
+absl::StatusOr<std::string> SimulatorManager::PrepareVerbatimInputsOnDisk(
+    const std::vector<FileInfo> &files) {
+  auto temp = CreateTemporaryDirectory();
+  if (!temp.ok()) {
+    return temp.status();
+  }
+
+  LOG(INFO) << "Using temp dir: " << *temp;
+  for (const FileInfo &file_info_pb : files) {
+    std::filesystem::path path(*temp);
+    path /= std::filesystem::path(file_info_pb.path());
+    LOG(INFO) << "Writing: " << path;
+
+    std::filesystem::path directories = path;
+    directories.remove_filename();
+
+    std::filesystem::create_directories(directories);
+
+    std::ofstream of;
+    of.open(path, std::ios::out | std::ios::binary);
+    of.write(file_info_pb.data().c_str(), file_info_pb.data().size());
+    of.close();
+  }
+
+  return *temp;
+}
+
+absl::Status SimulatorManager::RunSimulator(
     const Flavour &flavour,
     const std::vector<FileInfo> &files,
     const std::vector<std::string> &additional_args) {
   auto simulator_info =
       SimulatorRegistry::GetInstance().GetSimulatorInfo(flavour);
+  if (!simulator_info) {
+    return absl::InvalidArgumentError("No simulator found.");
+  }
 
-  return true;
+  auto result_or = PrepareVerbatimInputsOnDisk(files);
+  if (!result_or.ok()) {
+    return result_or.status();
+  }
+  std::string directory = *result_or;
+
+  std::vector<std::string> args(additional_args.begin(), additional_args.end());
+  args.insert(args.begin(), files.begin()->path());
+
+  const std::string &command = simulator_info->path;
+  auto result = SpawnProcess(command, args, directory);
+  if (!result.ok()) {
+    return result;
+  }
+
+  return absl::OkStatus();
 }
 
-bool SimulatorManager::SpawnProcess(const std::string& command,
-                                    const std::vector<std::string>& args) {
+absl::Status SimulatorManager::SpawnProcess(
+    const std::string &command,
+    const std::vector<std::string> &args,
+    const std::string &directory) {
   if (process_spawned_) {
-    return false;
+    return absl::AlreadyExistsError("The process has already been spawned.");
   }
 
   // Create pipes for stdout and stderr. Index 0 gets the read end of the pipe,
   // and index 1 gets the write end.
   if (pipe(stdout_pipe_) == -1 || pipe(stderr_pipe_) == -1) {
     CleanupPipes();
-    return false;
+    return absl::InternalError("Could not create pipes to child process.");
   }
 
   pid_ = fork();
 
   if (pid_ == -1) {
     CleanupPipes();
-    return false;
+    return absl::InternalError("Fork failed.");
   }
 
   if (pid_ == 0) {
+    std::filesystem::current_path(directory);
+
     // Child process
     close(stdout_pipe_[0]);
     close(stderr_pipe_[0]);
@@ -106,13 +158,17 @@ bool SimulatorManager::SpawnProcess(const std::string& command,
     }
     argv.push_back(nullptr);
 
-    // Execute the command
+    // Execute the command.
     execvp(command.c_str(), argv.data());
 
-    // If execvp returns, it failed
+    // If execvp returns, it failed.
     LOG(ERROR) << "Failed to execute command: " << strerror(errno);
     _exit(1);
   }
+
+  std::vector<std::string> full_command(args.begin(), args.end());
+  full_command.insert(full_command.begin(), command);
+  LOG(INFO) << "Child is running command: " << absl::StrJoin(full_command, " ");
 
   // Parent process
   close(stdout_pipe_[1]);
@@ -128,7 +184,7 @@ bool SimulatorManager::SpawnProcess(const std::string& command,
   stderr_open_ = true;
   process_spawned_ = true;
 
-  return true;
+  return absl::OkStatus();
 }
 
 bool SimulatorManager::PollAndReadOutput(OutputCallback callback) {
@@ -209,6 +265,7 @@ bool SimulatorManager::IsRunning() const { return process_spawned_; }
 // TODO(aryap): We need a background process to expire (and delete) old
 // temporary directories after some timeout.
 absl::StatusOr<std::string> SimulatorManager::CreateTemporaryDirectory() {
+  // TODO(aryap): Maybe use std::filesystem::temp_directory_path().
   static char kTemplate[] = "/tmp/spice_server.XXXXXX";
   char *directory_name = mkdtemp(kTemplate);
   if (directory_name == nullptr) {

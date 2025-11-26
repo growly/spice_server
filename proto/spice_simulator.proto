@@ -95,9 +95,7 @@ message SimulationResponse {
   StreamType stream_type = 2;
 
   // Exit code (only set in final message)
-  optional int32 exit_code = 3;
-
-  
+  int32 exit_code = 3;
 
   // Whether this is the final message
   bool done = 4;

@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <gflags/gflags.h>
-
 #include "proto/spice_simulator.pb.h"
 
 namespace spiceserver {

@@ -36,17 +36,14 @@ void RunServer(const std::string &server_address) {
 }
 
 int main(int argc, char **argv) {
-  // Parse command line flags
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  // Initialize Google's logging library
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
 
   spiceserver::SimulatorRegistry &registry =
       spiceserver::SimulatorRegistry::GetInstance();
 
-  // Log configuration file if provided
   if (!FLAGS_static_installs.empty()) {
     LOG(INFO) << "Using simulator static installs file: "
               << FLAGS_static_installs;
