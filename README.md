@@ -35,19 +35,40 @@ brew install cmake grpc protobuf
 mkdir build
 cd build
 cmake ..
-make
+make -j $(nproc)
 ```
 
 ## Running
 
-Start the server (default port 50051):
+Start the server (with port set to 50051):
 ```bash
-./spice_server
+./spice_server --port=50051 --nofind_simulators --static_installs=../static_installs.pb.txt
 ```
 
-Or specify a custom address:
-```bash
-./spice_server 0.0.0.0:8080
+## Using the example Python client
+
+The `testdata` directory contains example netlists to run through simulators. For example, you can run `Xyce` on `cmost_inverter` by running:
+
+```
+cd testdata/cmost_inverter
+/path/to/Xyce main.sp
+```
+
+
+Or you could have the `spice_server` run it for you by sending the test data to the server with the example python3 `client.py`. First generat the required protobufs:
+
+```
+cd example_client
+./generate_protobufs.sh
+```
+
+Then:
+1. changing the values in `static_installs.pb.txt` to suit your system;
+1. running the server with the above comand; and
+1. running the client on the testdata dir:
+
+```
+example_client/client.py testdata/cmos_inverter testdata/cmos_inverter/main.sp
 ```
 
 ## Querying
@@ -55,17 +76,3 @@ Or specify a custom address:
 ```bash
 ~/go/bin/grpcurl -plaintext localhost:50051 list
 ```
-
-In its initial form you could execute any command and that is bad:
-```bash
-~/go/bin/grpcurl -plaintext -d @     localhost:50051 spiceserver.SpiceSimulator/RunSimulation << EOM
-{
-  "netlist": "",
-  "simulator": "cat",
-  "args": ["/dev/random"]
-}
-EOM
-```
-
-Now you either have to bundle up the file data into the request or (soon)
-provide a VLSIR proto for the netlists.
