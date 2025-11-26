@@ -1,4 +1,4 @@
-FROM debian:13.2
+FROM debian:13.2-slim
 
 # Add debian packages.
 RUN <<EOF
@@ -25,7 +25,8 @@ apt install -y \
   python3 \
   python3-pip \
   wget \
-  libc-ares-dev
+  libc-ares-dev \
+  python3-full
 EOF
 
 # Add development dependencies for spice_server.
@@ -166,6 +167,15 @@ EOF
 RUN cmake --build . -j $(nproc) -t install
 
 # Add Skywater130 PDK.
+ENV PDK_ROOT="/pdk/"
+RUN mkdir -p ${PDK_ROOT}
+WORKDIR /pkg/
+RUN python3 -m venv /pkg/python3-ciel
+RUN /pkg/python3-ciel/bin/python3 -m pip install --upgrade --no-cache-dir ciel
+#RUN /pkg/python3-ciel/bin/ciel ls-remote --pdk-family sky130
+RUN /pkg/python3-ciel/bin/ciel enable --pdk-family sky130 486fb8633c3d95ae475a5ccd68d0066c25919bb5
+#RUN /pkg/python3-ciel/bin/ciel ls-remote --pdk-family gf180mcu
+RUN /pkg/python3-ciel/bin/ciel enable --pdk-family gf180mcu 486fb8633c3d95ae475a5ccd68d0066c25919bb5
 
 # Build and install spice_server.
 ADD https://github.com/growly/spice_server /pkg/
