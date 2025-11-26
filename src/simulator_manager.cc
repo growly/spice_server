@@ -265,9 +265,10 @@ bool SimulatorManager::IsRunning() const { return process_spawned_; }
 // TODO(aryap): We need a background process to expire (and delete) old
 // temporary directories after some timeout.
 absl::StatusOr<std::string> SimulatorManager::CreateTemporaryDirectory() {
-  // TODO(aryap): Maybe use std::filesystem::temp_directory_path().
-  static char kTemplate[] = "/tmp/spice_server.XXXXXX";
-  char *directory_name = mkdtemp(kTemplate);
+  std::string template_str =
+      std::filesystem::temp_directory_path().string() + "/spice_server.XXXXXX";
+  // TODO(aryap): const_cast is bad juju! I'm not sure this is legal.
+  char *directory_name = mkdtemp(const_cast<char*>(template_str.c_str()));
   if (directory_name == nullptr) {
     // Problem.
     return absl::UnavailableError("mkdtemp failed to make temporary directory");

@@ -4,12 +4,15 @@
 #include <string>
 #include <vector>
 
+#include <absl/strings/str_cat.h>
+
 #include "simulator_manager.h"
 
 namespace spiceserver {
 
 grpc::Status SimulatorServiceImpl::ListSimulators(
-    grpc::ServerContext* context, const ListSimulatorsRequest* request,
+    grpc::ServerContext* context,
+    const ListSimulatorsRequest* request,
     ListSimulatorsResponse* reseponse) {
   // Query the singleton/static SimulatorRegistry.
 
@@ -40,8 +43,10 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
     auto status = simulator_manager.RunSimulator(
         request->simulator(), file_infos, additional_args);
     if (!status.ok()) {
-      return grpc::Status(grpc::StatusCode::INTERNAL,
-                          "Failed to spawn simulator process");
+      std::string new_message = absl::StrCat(
+          "Failed to spawn simulator process. ",
+          status.message());
+      return grpc::Status(grpc::StatusCode::INTERNAL, new_message);
     }
   } else {
     return grpc::Status(
