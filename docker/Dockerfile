@@ -24,7 +24,8 @@ apt install -y \
   libnetcdf-dev \
   python3 \
   python3-pip \
-  wget
+  wget \
+  libc-ares-dev
 EOF
 
 # Add development dependencies for spice_server.
