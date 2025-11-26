@@ -268,14 +268,12 @@ absl::StatusOr<std::string> SimulatorManager::CreateTemporaryDirectory() {
   std::string template_str =
       std::filesystem::temp_directory_path().string() + "/spice_server.XXXXXX";
   // TODO(aryap): const_cast is bad juju! I'm not sure this is legal.
-  char *directory_name = mkdtemp(const_cast<char*>(template_str.c_str()));
-  if (directory_name == nullptr) {
-    // Problem.
+  // mkdtemp will overwrite the template with generated value.
+  char *result = mkdtemp(const_cast<char*>(template_str.c_str()));
+  if (result == nullptr) {
     return absl::UnavailableError("mkdtemp failed to make temporary directory");
   }
-  // Is the char* going to leak?
-  std::string name(directory_name);
-  return name;
+  return template_str;
 }
 
 }  // namespace spiceserver
