@@ -41,6 +41,9 @@ class Netlister {
       const vlsir::spice::SimInput &sim_input_pb,
       const Flavour &spice_flavour,
       const std::filesystem::path &output_directory);
+
+ private:
+
 };
 
 } // namespace spiceserver

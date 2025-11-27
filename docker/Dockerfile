@@ -26,7 +26,8 @@ apt install -y \
   python3-pip \
   wget \
   libc-ares-dev \
-  python3-full
+  python3-full \
+  python3-pandas
 EOF
 
 # Add development dependencies for spice_server.

@@ -234,6 +234,7 @@ enable_testing()
 include(GoogleTest)
 
 add_executable(spice_server_test
+  tests/main_test.cc
   tests/netlister_test.cc
   src/netlister.cc
 )
@@ -250,7 +251,6 @@ target_link_libraries(spice_server_test
   PRIVATE
     proto_lib
     GTest::gtest
-    GTest::gtest_main
     gRPC::grpc++
     protobuf::libprotobuf
     glog::glog
