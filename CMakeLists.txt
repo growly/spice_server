@@ -11,12 +11,14 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(glog REQUIRED)
 find_package(gflags REQUIRED)
 find_package(absl REQUIRED)
+find_package(Python REQUIRED Development)
+find_package(GTest REQUIRED)
 
 # VLSIR integration
 # -----------------
 
 # The central problem we face when integrating VLSIR protobufs is that they all
-# reference on another with imports relative to the root of the proto
+# reference one another with imports relative to the root of the proto
 # directory, but in all cases where they are imported, they are kept in a
 # separate (typically "vlsir") directory. protoc generates symbols with
 # prefixes that seem to depend on the import path.
@@ -159,6 +161,9 @@ generate_protos(
 set(VLSIR_GENERATED_HDRS ${GENERATED_PROTO_HDRS})
 set(VLSIR_GENERATED_SRCS ${GENERATED_PROTO_SRCS})
 
+# The rest of the program
+# -----------------------
+
 set(PROTO_SRC_DIR ${PROJECT_SOURCE_DIR}/proto)
 file(GLOB_RECURSE PROTO_SRC "${PROTO_SRC_DIR}/*.proto")
 set(PROTO_OUT_DIR ${PROJECT_BINARY_DIR}/proto)
@@ -192,6 +197,7 @@ add_executable(spice_server
   src/simulator_service.cc
   src/simulator_manager.cc
   src/simulator_registry.cc
+  src/netlister.cc
 )
 
 target_include_directories(
@@ -218,4 +224,41 @@ target_link_libraries(spice_server
     absl::flat_hash_map
     absl::flat_hash_set
     absl::time
+    Python::Python
 )
+
+# Tests
+# -----
+
+enable_testing()
+include(GoogleTest)
+
+add_executable(spice_server_test
+  tests/netlister_test.cc
+  src/netlister.cc
+)
+
+target_include_directories(spice_server_test
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}
+    ${VLSIR_OUT_DIR}
+    ${PROTO_OUT_DIR}
+)
+
+target_link_libraries(spice_server_test
+  PRIVATE
+    proto_lib
+    GTest::gtest
+    GTest::gtest_main
+    gRPC::grpc++
+    protobuf::libprotobuf
+    glog::glog
+    gflags
+    absl::strings
+    absl::status
+    absl::statusor
+    Python::Python
+)
+
+gtest_discover_tests(spice_server_test)

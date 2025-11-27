@@ -76,3 +76,13 @@ example_client/client.py testdata/cmos_inverter testdata/cmos_inverter/main.sp
 ```bash
 ~/go/bin/grpcurl -plaintext localhost:50051 list
 ```
+
+## netlisters
+
+spice_server uses scripts in VLSIR's VlsirTools to convert VLSIR netlist
+protobufs to different netlist formats.
+
+It does this by invoking the python scripts directly from within the C++
+program. For now, the python scripts are pulled in directly from the vlsir_repo
+submodule in this repo. An alternative would to make them available as
+system-wide (or user-wide, or venv-wide) packages instead.
