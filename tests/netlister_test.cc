@@ -17,6 +17,8 @@ class NetlisterTest : public ::testing::Test {
     test_dir_ = std::filesystem::temp_directory_path() /
                 ("netlister_test_" + std::to_string(getpid()));
     std::filesystem::create_directories(test_dir_);
+
+    netlister_ = &Netlister::GetInstance();
   }
 
   void TearDown() override {
@@ -26,6 +28,7 @@ class NetlisterTest : public ::testing::Test {
     }
   }
 
+  Netlister *netlister_;
   std::filesystem::path test_dir_;
 };
 
@@ -40,7 +43,7 @@ TEST_F(NetlisterTest, WritesProtobufToFile) {
 
   // Call WriteSim
   Flavour flavour = Flavour::XYCE;
-  auto result = Netlister::WriteSim(sim_input, flavour, test_dir_);
+  auto result = netlister_->WriteSim(sim_input, flavour, test_dir_);
 
   // Verify the output file was created
   std::filesystem::path expected_file = test_dir_ / "sim_input.pb";
@@ -69,7 +72,7 @@ TEST_F(NetlisterTest, HandlesEmptySimInput) {
 
   // Call WriteSim with empty input
   Flavour flavour = Flavour::NGSPICE;
-  auto result = Netlister::WriteSim(sim_input, flavour, test_dir_);
+  auto result = netlister_->WriteSim(sim_input, flavour, test_dir_);
 
   // Verify the output file was still created
   std::filesystem::path expected_file = test_dir_ / "sim_input.pb";
@@ -99,7 +102,7 @@ TEST_F(NetlisterTest, WorksWithDifferentFlavours) {
     auto flavour_dir = test_dir_ / std::to_string(static_cast<int>(flavour));
     std::filesystem::create_directories(flavour_dir);
 
-    auto result = Netlister::WriteSim(sim_input, flavour, flavour_dir);
+    auto result = netlister_->WriteSim(sim_input, flavour, flavour_dir);
 
     // Verify file was created for each flavour
     std::filesystem::path expected_file = flavour_dir / "sim_input.pb";
@@ -119,11 +122,11 @@ TEST_F(NetlisterTest, OverwritesExistingFile) {
   std::filesystem::path expected_file = test_dir_ / "sim_input.pb";
 
   // Write first time
-  Netlister::WriteSim(first_input, flavour, test_dir_);
+  netlister_->WriteSim(first_input, flavour, test_dir_);
   ASSERT_TRUE(std::filesystem::exists(expected_file));
 
   // Write second time (should overwrite)
-  Netlister::WriteSim(second_input, flavour, test_dir_);
+  netlister_->WriteSim(second_input, flavour, test_dir_);
 
   // Verify the file contains the second input
   std::fstream input_file(expected_file.string(),
@@ -142,7 +145,7 @@ TEST_F(NetlisterTest, CreatesDirectoryIfNeeded) {
   sim_input.set_top("nested_test");
 
   Flavour flavour = Flavour::XYCE;
-  auto result = Netlister::WriteSim(sim_input, flavour, nested_dir);
+  auto result = netlister_->WriteSim(sim_input, flavour, nested_dir);
 
   // Verify the file was created in the nested directory
   std::filesystem::path expected_file = nested_dir / "sim_input.pb";

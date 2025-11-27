@@ -25,28 +25,17 @@ DEFINE_string(python_vlsir, "vlsir/",
 
 namespace spiceserver {
 
-std::vector<std::filesystem::path> Netlister::WriteSim(
-    const vlsir::spice::SimInput &sim_input_pb,
-    const Flavour &spice_flavour,
-    const std::filesystem::path &output_directory) {
-  std::string file_name = (output_directory / std::filesystem::path(
-      "sim_input.pb")).string();
-  std::fstream output_file(
-      file_name, std::ios::out | std::ios::trunc | std::ios::binary);
-  if (!sim_input_pb.SerializeToOstream(&output_file)) {
-    LOG(ERROR) << "Failed to write SimInput message";
-  } else {
-    LOG(INFO) << "SimInput protobuf written to " << file_name;
-  }
-
+void Netlister::InitialisePython() {
+  LOG(INFO) << "Starting Python";
   PyStatus py_status;
-  PyConfig config;
-  PyConfig_InitPythonConfig(&config);
-  py_status = Py_InitializeFromConfig(&config);
+  PyConfig_InitPythonConfig(&py_config_);
+  py_status = Py_InitializeFromConfig(&py_config_);
   if (PyStatus_Exception(py_status)) {
     LOG(ERROR) << "Could not initialise python from config";
   }
+}
 
+void Netlister::ConfigurePythonPostInit() {
   PyObject *py_path_list = PySys_GetObject("path");
   if (!py_path_list) {
     LOG(ERROR) << "Could not get Python \"path\" object";
@@ -65,6 +54,38 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
     LOG(ERROR) << "Could not make Python string for vlsir path";
   }
   PyList_Append(py_path_list, py_vlsir_str);
+}
+
+void Netlister::NewConfiguredPythonInterpreter() {
+  DCHECK(py_thread_state_ == nullptr);
+  py_thread_state_ = Py_NewInterpreter();
+  ConfigurePythonPostInit();
+}
+
+void Netlister::EndPythonInterpreter() {
+  Py_EndInterpreter(py_thread_state_);
+  py_thread_state_ = nullptr;
+}
+
+void Netlister::DeinitialisePython() {
+  LOG(INFO) << "Shutting down Python";
+  PyConfig_Clear(&py_config_);
+  Py_FinalizeEx();
+}
+
+std::vector<std::filesystem::path> Netlister::WriteSim(
+    const vlsir::spice::SimInput &sim_input_pb,
+    const Flavour &spice_flavour,
+    const std::filesystem::path &output_directory) {
+  std::string file_name = (output_directory / std::filesystem::path(
+      "sim_input.pb")).string();
+  std::fstream output_file(
+      file_name, std::ios::out | std::ios::trunc | std::ios::binary);
+  if (!sim_input_pb.SerializeToOstream(&output_file)) {
+    LOG(ERROR) << "Failed to write SimInput message";
+  } else {
+    LOG(INFO) << "SimInput protobuf written to " << file_name;
+  }
 
   PyRun_SimpleString(
       "import sys\n"
@@ -73,8 +94,7 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
       "from time import time, ctime\n"
       "print('Today is',ctime(time()))\n"
   );
-  Py_Finalize();
-  
+
   return {};
 }
 

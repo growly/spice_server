@@ -7,43 +7,68 @@
 #include <string>
 #include <vector>
 
+#include <python3.11/Python.h>
 #include <absl/status/statusor.h>
 
 #include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
 #include "vlsir/spice.pb.h"
 
-// So you don't know how to do subprocess management and you just asked AI to
-// write it all for you? Crazy enough to work. Here's what's happening at the
-// system interface. We:
-//
-//  - ask the kernel for two new pipes, and for each it returns a file
-//  descriptor for the read end and another for the write end
-//  - fork the process
-//    - in the child (the one that will run the simulator), tie stderr and
-//    stdout to the write (input) end of those pipes we just made
-//    - in the parent (the long-lived server), prepare to poll the read end of
-//    those same pipes
-//  - while the process runs, provide a mechanism to read the contents of each
-//  buffer and give the data to some external function (callback)
-//  - if we have to wait for completion, use another syscall to wait for the
-//  child process to complete
+// 
+// We use a singleton so that we can can cleanly initialise the python
+// interpreter and also destroy it at the end of the program. (It turns out
+// that it's not possible to correctly initialize and de-initialize it when
+// using some modules, like numpy.)
 
 namespace spiceserver {
 
 class Netlister {
  public:
-  
+  Netlister(const Netlister &other) = delete;
+  Netlister &operator=(const Netlister &other) = delete;
+
+  static Netlister &GetInstance() {
+    static Netlister instance;
+    return instance;
+  }
+
   // Write the given VLSIR package to disk at the given output_directory, in
   // the given spice flavour. Returns a list of created files, with the file
   // corresponding to the top-level module first.
-  static std::vector<std::filesystem::path> WriteSim(
+  std::vector<std::filesystem::path> WriteSim(
       const vlsir::spice::SimInput &sim_input_pb,
       const Flavour &spice_flavour,
       const std::filesystem::path &output_directory);
 
  private:
+  Netlister()
+    : py_thread_state_(nullptr) {
+    InitialisePython();
+    ConfigurePythonPostInit();
+  }
+  ~Netlister() {
+    DeinitialisePython();
+  }
 
+  // FIXME(aryap): numpy is bad at being run in a Python init/de-init loop or
+  // in sub-interpreters. It even says:
+  //
+  // UserWarning: NumPy was imported from a Python sub-interpreter but NumPy
+  // does not properly support sub-interpreters. This will likely work for most
+  // users but might cause hard to track down issues or subtle bugs. A common
+  // user of the rare sub-interpreter feature is wsgi which also allows
+  // single-interpreter mode. Improvements in the case of bugs are welcome,
+  // but is not on the NumPy roadmap, and full support may require significant
+  // effort to achieve.
+  PyThreadState *py_thread_state_;
+  void NewConfiguredPythonInterpreter();
+  void EndPythonInterpreter();
+
+  void ConfigurePythonPostInit();
+
+  PyConfig py_config_;
+  void InitialisePython();
+  void DeinitialisePython();
 };
 
 } // namespace spiceserver
