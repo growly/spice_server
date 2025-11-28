@@ -86,16 +86,36 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
   } else {
     LOG(INFO) << "SimInput protobuf written to " << file_name;
   }
+  
+  if (!sim_input_pb.pkg().SerializeToOstream(&output_file)) {
+    LOG(ERROR) << "Could not write input proto to " << file_name;
+    return {};
+  }
 
-  PyRun_SimpleString(
+  std::filesystem::path out_file_name = output_directory / "netlist.sp";
+
+  std::string python_script = absl::StrCat("input_pb_name = '", file_name, "'\n");
+  python_script += absl::StrCat(
+      "out_file_name = '", out_file_name.string(), "'\n");
+  python_script +=
       "import sys\n"
       "print(sys.path)\n"
+      "import vlsir.circuit_pb2 as circuit_pb2\n"
       "from vlsirtools.netlist.spice import XyceNetlister\n"
-      "from time import time, ctime\n"
-      "print('Today is',ctime(time()))\n"
-  );
+      "package_pb = circuit_pb2.Package()\n"
+      "with open(input_pb_name, 'rb') as in_file:\n"
+      "  print('reading:', input_pb_name)\n"
+      "  package_pb.ParseFromString(in_file.read())\n"
+      "with open(out_file_name, 'w') as out_file:\n"
+      "  print('writing:', out_file_name)\n"
+      "  netlister = XyceNetlister(out_file)\n"
+      "  netlister.write_package(package_pb)\n";
 
-  return {};
+  std::cout << python_script << std::endl;
+
+  PyRun_SimpleString(python_script.c_str());
+
+  return {out_file_name};
 }
 
 }  // namespace spiceserver
