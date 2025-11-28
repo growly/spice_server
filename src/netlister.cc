@@ -111,7 +111,7 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
       "  netlister = XyceNetlister(out_file)\n"
       "  netlister.write_package(package_pb)\n";
 
-  std::cout << python_script << std::endl;
+  VLOG(11) << "Running script:\n" << python_script;
 
   PyRun_SimpleString(python_script.c_str());
 
