@@ -197,6 +197,7 @@ add_executable(spice_server
   src/simulator_service.cc
   src/simulator_manager.cc
   src/simulator_registry.cc
+  src/subprocess.cc
   src/netlister.cc
 )
 

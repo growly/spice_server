@@ -55,11 +55,11 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
 
   // Poll and stream output from the subprocess
   auto output_callback = [writer](const char* data, size_t length,
-                                  SimulatorManager::StreamType stream_type) {
+                                  Subprocess::StreamType stream_type) {
     SimulationResponse response;
     response.set_output(data, length);
 
-    if (stream_type == SimulatorManager::StreamType::STDOUT) {
+    if (stream_type == Subprocess::StreamType::STDOUT) {
       response.set_stream_type(SimulationResponse::STDOUT);
     } else {
       response.set_stream_type(SimulationResponse::STDERR);

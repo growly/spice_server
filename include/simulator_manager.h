@@ -1,14 +1,13 @@
 #ifndef SIMULATOR_MANAGER_H_
 #define SIMULATOR_MANAGER_H_
 
-#include <sys/types.h>
-#include <functional>
 #include <string>
 #include <vector>
 
 #include <absl/status/statusor.h>
 
 #include "simulator_registry.h"
+#include "subprocess.h"
 #include "proto/spice_simulator.pb.h"
 
 // So you don't know how to do subprocess management and you just asked AI to
@@ -31,16 +30,6 @@ namespace spiceserver {
 
 class SimulatorManager {
  public:
-  enum class StreamType {
-    STDOUT,
-    STDERR
-  };
-
-  using OutputCallback = std::function<void(
-      const char* data,
-      size_t length,
-      StreamType stream_type)>;
-
   SimulatorManager();
   ~SimulatorManager();
 
@@ -59,7 +48,7 @@ class SimulatorManager {
   // Polls and reads from subprocess stdout/stderr, invoking the callback
   // for each chunk of data received.
   // Returns true while the process is running, false when complete.
-  bool PollAndReadOutput(OutputCallback callback);
+  bool PollAndReadOutput(Subprocess::OutputCallback callback);
 
   // Waits for the subprocess to complete and returns the exit code.
   // Returns -1 if the process was terminated by a signal.
@@ -69,25 +58,11 @@ class SimulatorManager {
   bool IsRunning() const;
 
  private:
-  // Spawns a subprocess with the given command and arguments.
-  // Returns true on success, false on failure.
-  absl::Status SpawnProcess(const std::string &command,
-                            const std::vector<std::string> &args,
-                            const std::string &directory);
-
-  void CleanupPipes();
-  void SetNonBlocking(int fd);
-
   absl::StatusOr<std::string> PrepareVerbatimInputsOnDisk(
       const std::vector<FileInfo> &files);
   absl::StatusOr<std::string> CreateTemporaryDirectory();
 
-  pid_t pid_;
-  int stdout_pipe_[2];
-  int stderr_pipe_[2];
-  bool stdout_open_;
-  bool stderr_open_;
-  bool process_spawned_;
+  Subprocess subprocess_;
 };
 
 } // namespace spiceserver
