@@ -43,7 +43,9 @@ class SimulatorManager {
   // Same deal, but all netlist info is provided through VLSIR protobufs. This
   // requires an additional netlisting step, using a netlister appropriate to
   // the Spice flavour.
-  // bool RunSimulator(const ...);
+  absl::Status RunSimulator(const Flavour &flavour,
+                            const vlsir::spice::SimInput &sim_input,
+                            const std::vector<std::string> &additional_args);
 
   // Polls and reads from subprocess stdout/stderr, invoking the callback
   // for each chunk of data received.

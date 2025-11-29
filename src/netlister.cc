@@ -20,7 +20,7 @@
 
 DEFINE_string(python_vlsirtools, "../vlsir_repo/VlsirTools",
               "Path to root of vlsirtools python module.");
-DEFINE_string(python_vlsir, "vlsir/",
+DEFINE_string(python_vlsir, "../vlsir_repo/bindings/python",
               "Path to generated python vlsir bindings.");
 
 namespace spiceserver {

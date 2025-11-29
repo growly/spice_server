@@ -1,7 +1,5 @@
 # SpiceServer
 
-This project was bootrapped by Claude, so keep that in mind.
-
 A gRPC service for executing SPICE circuit simulations via various simulators as subprocesses.
 
 ## Overview
@@ -24,7 +22,7 @@ sudo apt-get install -y cmake build-essential
 sudo apt-get install -y libgrpc++-dev libprotobuf-dev protobuf-compiler-grpc
 ```
 
-On macOS with Homebrew:
+(UNTESTED) On macOS with Homebrew:
 ```bash
 brew install cmake grpc protobuf
 ```
@@ -45,7 +43,25 @@ Start the server (with port set to 50051):
 ./spice_server --port=50051 --nofind_simulators --static_installs=../static_installs.pb.txt
 ```
 
-## Using the example Python client
+You can provide override paths to the Python modules for `vlsirtools` and the
+Python VLSIR bindings with the `--python_vlsir` and `--python_vlsirtools` flags
+(see `src/netlister.cc` or `--help`).
+
+
+## Using the example Python client to submit VLSIR netlists
+
+The `testdata/cmos_inverter_hdl21` directory contains an example Hdl21
+description of a basic CMOS inverter for the Sky130 PDK *and* a simple
+testbench to demonstrate it. Hdl21 can output a `vlsir::spice::SimInput`
+protobuf containing the testbench and design under test, which the example
+client can submit to the spice server:
+
+```bash
+cd example_client
+PYTHONPATH=${HOME}/src/Hdl21::${HOME}/src/Hdl21/pdks/Sky130 ./client.py
+```
+
+## Using the example Python client to submit Spice files
 
 The `testdata` directory contains example netlists to run through simulators. For example, you can run `Xyce` on `cmost_inverter` by running:
 

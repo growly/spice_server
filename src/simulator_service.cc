@@ -30,22 +30,28 @@ grpc::Status SimulatorServiceImpl::RunSimulation(
 
   SimulatorManager simulator_manager;
 
+  std::vector<std::string> additional_args(
+      request->additional_args().begin(),
+      request->additional_args().end());
+
   if (request->has_vlsir_sim_input()) {
-    return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Not today");
+    auto status = simulator_manager.RunSimulator(
+        request->simulator(), request->vlsir_sim_input(), additional_args);
+    if (!status.ok()) {
+      std::string new_message = absl::StrCat(
+          "Failure in running simulator:", status.message());
+      return grpc::Status(grpc::StatusCode::INTERNAL, new_message);
+    }
   } else if (request->has_verbatim_files()) {
     std::vector<FileInfo> file_infos(
         request->verbatim_files().files().begin(),
         request->verbatim_files().files().end());
-    std::vector<std::string> additional_args(
-        request->additional_args().begin(),
-        request->additional_args().end());
 
     auto status = simulator_manager.RunSimulator(
         request->simulator(), file_infos, additional_args);
     if (!status.ok()) {
       std::string new_message = absl::StrCat(
-          "Failed to spawn simulator process. ",
-          status.message());
+          "Failure in running simulator:", status.message());
       return grpc::Status(grpc::StatusCode::INTERNAL, new_message);
     }
   } else {

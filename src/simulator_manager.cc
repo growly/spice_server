@@ -9,6 +9,7 @@
 #include <absl/status/status.h>
 #include <absl/status/statusor.h>
 
+#include "netlister.h"
 #include "simulator_registry.h"
 #include "subprocess.h"
 #include "proto/spice_simulator.pb.h"
@@ -64,6 +65,41 @@ absl::Status SimulatorManager::RunSimulator(
 
   std::vector<std::string> args(additional_args.begin(), additional_args.end());
   args.insert(args.begin(), files.begin()->path());
+
+  const std::string &command = simulator_info->path;
+  auto result = subprocess_.Spawn(command, args, directory);
+  if (!result.ok()) {
+    return result;
+  }
+
+  return absl::OkStatus();
+}
+
+absl::Status SimulatorManager::RunSimulator(
+    const Flavour &flavour,
+    const vlsir::spice::SimInput &sim_input,
+    const std::vector<std::string> &additional_args) {
+  auto simulator_info =
+      SimulatorRegistry::GetInstance().GetSimulatorInfo(flavour);
+  if (!simulator_info) {
+    return absl::InvalidArgumentError("No simulator found.");
+  }
+
+  auto result_or = CreateTemporaryDirectory();
+  if (!result_or.ok()) {
+    return result_or.status();
+  }
+  std::filesystem::path directory(*result_or);
+
+  auto netlists = Netlister::GetInstance().WriteSim(
+      sim_input, flavour, directory);
+  if (netlists.empty()) {
+    return absl::InvalidArgumentError(
+        "Could not convert VLSIR SimInput to a SPICE netlist");
+  }
+
+  std::vector<std::string> args(additional_args.begin(), additional_args.end());
+  args.insert(args.begin(), netlists.begin()->string());
 
   const std::string &command = simulator_info->path;
   auto result = subprocess_.Spawn(command, args, directory);

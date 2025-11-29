@@ -51,7 +51,7 @@ class Inverter:
 
 
 @sim.sim
-class Sky130MuxSim:
+class InverterSim:
 
     @h.module
     class Tb:   # required to be named 'Tb'?
@@ -103,21 +103,16 @@ def plot(tran_result: spice.sim_data.TranResult):
     plt.ylabel('V')
     plt.xlabel('Time (s)')
     plt.savefig('plot.png', dpi=300)
-        
 
-def main():
-    options = spice.SimOptions(
-        simulator=spice.SupportedSimulators.XYCE,
-        fmt=spice.ResultFormat.SIM_DATA,
-        rundir="./scratch"
-    )
+
+def run_through_Hdl21(options):
     #if not spice.xyce.available():
     #    print("spice is not available!")
     #    return
 
     #scale_params(mux)
 
-    results = Sky130MuxSim.run(options)
+    results = InverterSim.run(options)
 
     tran_results = None
     for analysis in results.an:
@@ -128,6 +123,19 @@ def main():
         print(tran_results)
         plot(tran_results)
 
+
+def to_sim_input_pb():
+    return sim.proto.to_proto(InverterSim)
+
+
+def main():
+    options = spice.SimOptions(
+        simulator=spice.SupportedSimulators.XYCE,
+        fmt=spice.ResultFormat.SIM_DATA,
+        rundir="./scratch"
+    )
+
+    run_through_Hdl21(options)
 
 if __name__ == "__main__":
     main()

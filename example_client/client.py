@@ -8,9 +8,24 @@ import sys
 import pathlib
 import tabulate
 
+# We do this to avoid having to install anything, so that the script works for
+# its intended (debugging, development) purposes. The only additional
+# dependencies are Hdl21 and its Sky130 PDK modules, which you should make
+# available somewhere on disk (such as by installing the package).
+import sys
+sys.path.extend([
+    '../testdata',
+    '../vlsir_repo/VlsirTools',
+    '../vlsir_repo/bindings/python'
+])
+
+import cmos_inverter_hdl21.inverter as example_cmos_inverter
+
 def usage():
     print('''Usage:
 ./client.py <test directory> <entry spice netlist>
+
+With no options, client will submit VLSIR test message instead.
 
 e.g. (from this directory)
 ./client.py ../testdata/cmos_inverter ../testdata/cmos_inverter/main.sp''')
@@ -51,16 +66,25 @@ def bundle_up_files(target_dir, first_file, request_out):
     print(tabulate.tabulate(rows, headers='firstrow'))
 
 def main():
-    if len(sys.argv) < 3:
+    # TODO(aryap): There are better ways to do this, like with using argparse
+    # or optparse.
+    use_vlsir = True
+    if len(sys.argv) == 3:
+        target_dir = sys.argv[1]
+        main_file = sys.argv[2]
+        use_vlsir = False
+    elif len(sys.argv) != 1:
         usage()
         sys.exit(1)
 
-    target_dir = sys.argv[1]
-    main_file = sys.argv[2]
-
     request = spice_simulator_pb2.SimulationRequest()
     request.simulator = spice_simulator_pb2.Flavour.XYCE
-    bundle_up_files(target_dir, main_file, request)
+
+    if use_vlsir:
+        request.vlsir_sim_input.CopyFrom(
+                example_cmos_inverter.to_sim_input_pb())
+    else:
+        bundle_up_files(target_dir, main_file, request)
 
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = spice_simulator_pb2_grpc.SpiceSimulatorStub(channel)

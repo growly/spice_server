@@ -1,0 +1,4 @@
+scratch/
+__pycache__/
+sim_input.pb
+plot.png
