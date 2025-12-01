@@ -85,7 +85,8 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
   //  2) hide this behind the existing interface so as to not break any other
   //  code (no mood for fixing those yet)
   //  3) write_sim_input seems to be the version of (1) that alrady exists, but
-  //  it has missing parts?
+  //  it has missing parts? it works for SpectreNetlister.
+  //  4) ok our job is to complete Netlister.write_sim_input!
   std::string file_name = (output_directory / std::filesystem::path(
       "vlsir_sim_input.pb")).string();
   std::fstream output_file(
