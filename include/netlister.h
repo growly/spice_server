@@ -40,6 +40,11 @@ class Netlister {
       const Flavour &spice_flavour,
       const std::filesystem::path &output_directory);
 
+  std::vector<std::filesystem::path> WriteSpice(
+      const vlsir::circuit::Package &circuit_pb,
+      const Flavour &spice_flavour,
+      const std::filesystem::path &output_directory);
+
  private:
   Netlister()
     : py_thread_state_(nullptr) {

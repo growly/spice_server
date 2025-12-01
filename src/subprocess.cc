@@ -99,6 +99,8 @@ absl::Status Subprocess::Spawn(
     // Execute the command.
     execvp(command.c_str(), argv.data());
 
+    // TODO(aryap): Need to extract return code.
+
     // If execvp returns, it failed.
     LOG(ERROR) << "Failed to execute command: " << strerror(errno);
     _exit(1);

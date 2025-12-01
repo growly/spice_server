@@ -77,19 +77,68 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
     const vlsir::spice::SimInput &sim_input_pb,
     const Flavour &spice_flavour,
     const std::filesystem::path &output_directory) {
+  // vlsirtools/spice contains classes that implement the conversion of
+  // SimInput parameters to specific simulator commands (for including in the
+  // top level deck). TODO(aryap):
+  //  1) separate the logic which writes the top-level deck from running the
+  //  exectuable on them
+  //  2) hide this behind the existing interface so as to not break any other
+  //  code (no mood for fixing those yet)
+  //  3) write_sim_input seems to be the version of (1) that alrady exists, but
+  //  it has missing parts?
   std::string file_name = (output_directory / std::filesystem::path(
-      "sim_input.pb")).string();
+      "vlsir_sim_input.pb")).string();
   std::fstream output_file(
       file_name, std::ios::out | std::ios::trunc | std::ios::binary);
   if (!sim_input_pb.SerializeToOstream(&output_file)) {
-    LOG(ERROR) << "Failed to write SimInput message";
+    LOG(ERROR) << "Could not write input proto to " << file_name;
+    return {};
   } else {
     LOG(INFO) << "SimInput protobuf written to " << file_name;
   }
-  
-  if (!sim_input_pb.pkg().SerializeToOstream(&output_file)) {
+
+  std::filesystem::path out_file_name = output_directory / "main.sp";
+
+  std::string python_script = absl::StrCat("input_pb_name = '", file_name, "'\n");
+  python_script += absl::StrCat(
+      "out_file_name = '", out_file_name.string(), "'\n");
+  python_script +=
+      "#import sys\n"
+      "#print(sys.path)\n"
+      "import vlsir.spice_pb2 as spice_pb2\n"
+      "from vlsirtools.netlist.spice import XyceNetlister\n"
+      "sim_input_pb = spice_pb2.SimInput()\n"
+      "with open(input_pb_name, 'rb') as in_file:\n"
+      "  print('reading:', input_pb_name)\n"
+      "  sim_input_pb.ParseFromString(in_file.read())\n"
+      "with open(out_file_name, 'w') as out_file:\n"
+      "  print('writing:', out_file_name)\n"
+      "  netlister = XyceNetlister(out_file)\n"
+      "  netlister.write_sim_input(sim_input_pb)\n";
+
+
+  VLOG(11) << "Running script:\n" << python_script;
+
+  PyRun_SimpleString(python_script.c_str());
+
+  // TODO(aryap): Need to extract any errors from running Python script.
+
+  return {out_file_name};
+}
+
+std::vector<std::filesystem::path> Netlister::WriteSpice(
+    const vlsir::circuit::Package &circuit_pb,
+    const Flavour &spice_flavour,
+    const std::filesystem::path &output_directory) {
+  std::string file_name = (output_directory / std::filesystem::path(
+      "vlsir_package.pb")).string();
+  std::fstream output_file(
+      file_name, std::ios::out | std::ios::trunc | std::ios::binary);
+  if (!circuit_pb.SerializeToOstream(&output_file)) {
     LOG(ERROR) << "Could not write input proto to " << file_name;
     return {};
+  } else {
+    LOG(INFO) << "Circuit protobuf written to " << file_name;
   }
 
   std::filesystem::path out_file_name = output_directory / "netlist.sp";
@@ -98,8 +147,8 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
   python_script += absl::StrCat(
       "out_file_name = '", out_file_name.string(), "'\n");
   python_script +=
-      "import sys\n"
-      "print(sys.path)\n"
+      "#import sys\n"
+      "#print(sys.path)\n"
       "import vlsir.circuit_pb2 as circuit_pb2\n"
       "from vlsirtools.netlist.spice import XyceNetlister\n"
       "package_pb = circuit_pb2.Package()\n"
@@ -111,9 +160,12 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
       "  netlister = XyceNetlister(out_file)\n"
       "  netlister.write_package(package_pb)\n";
 
+
   VLOG(11) << "Running script:\n" << python_script;
 
   PyRun_SimpleString(python_script.c_str());
+
+  // TODO(aryap): Need to extract any errors from running Python script.
 
   return {out_file_name};
 }
