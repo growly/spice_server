@@ -38,7 +38,22 @@ LOW = 0.0   # volts
 
 @h.module
 class Inverter:
+    """ This is just a CMOS inverter.
 
+                       / power
+                       |
+                   | +-+
+                +-o| | --- power (substrate)
+                |  | +-+
+                |      |
+    in_signal --+      +-- out_signal
+                |      |
+                |  | +-+
+                +--| | --- ground (substrate)
+                   | +-+
+                       |
+                       V ground
+    """
     in_signal, out_signal, power, ground = h.Ports(4)
     pmos = sky130.primitives.PMOS_1p8V_STD()(d=out_signal,
                                              g=in_signal,
@@ -106,10 +121,9 @@ def plot(tran_result: spice.sim_data.TranResult):
 
 
 def run_through_Hdl21(options):
-    #if not spice.xyce.available():
-    #    print("spice is not available!")
-    #    return
-
+    """Run the simulation through Hdl21's simulation machinery, which invokes
+       VLSIR's local simulation machinery.
+    """
     #scale_params(mux)
 
     results = InverterSim.run(options)
@@ -125,6 +139,8 @@ def run_through_Hdl21(options):
 
 
 def to_sim_input_pb():
+    """Use Hdl21 to turn the module into a vlsir.spice.SimInput proto.
+    """
     return sim.proto.to_proto(InverterSim)
 
 

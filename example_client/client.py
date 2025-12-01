@@ -19,13 +19,14 @@ sys.path.extend([
     '../vlsir_repo/bindings/python'
 ])
 
+# The default VLSIR message is this example Hdl21 module.
 import cmos_inverter_hdl21.inverter as example_cmos_inverter
 
 def usage():
     print('''Usage:
 ./client.py <test directory> <entry spice netlist>
 
-With no options, client will submit VLSIR test message instead.
+With no options, client will submit a VLSIR test message instead.
 
 e.g. (from this directory)
 ./client.py ../testdata/cmos_inverter ../testdata/cmos_inverter/main.sp''')
