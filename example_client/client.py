@@ -89,7 +89,8 @@ def main():
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = spice_simulator_pb2_grpc.SpiceSimulatorStub(channel)
         for response in stub.RunSimulation(request):
-            print(response)
+            for line in response.output.splitlines():
+                print('remote:', line)
 
 if __name__ == '__main__':
     main()
