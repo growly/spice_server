@@ -9,7 +9,7 @@
 #include <absl/status/status.h>
 #include <absl/status/statusor.h>
 
-#include "netlister.h"
+#include "embedded_python_netlister.h"
 #include "simulator_registry.h"
 #include "subprocess.h"
 #include "proto/spice_simulator.pb.h"
@@ -91,7 +91,7 @@ absl::Status SimulatorManager::RunSimulator(
   }
   std::filesystem::path directory(*result_or);
 
-  auto netlists = Netlister::GetInstance().WriteSim(
+  auto netlists = EmbeddedPythonNetlister::GetInstance().WriteSim(
       sim_input, flavour, directory);
   if (netlists.empty()) {
     return absl::InvalidArgumentError(

@@ -1,5 +1,5 @@
-#ifndef NETLISTER_H_
-#define NETLISTER_H_
+#ifndef EMBEDDED_PYTHON_NETLISTER_H_
+#define EMBEDDED_PYTHON_NETLISTER_H_
 
 #include <sys/types.h>
 #include <functional>
@@ -25,13 +25,13 @@
 
 namespace spiceserver {
 
-class Netlister {
+class EmbeddedPythonNetlister {
  public:
-  Netlister(const Netlister &other) = delete;
-  Netlister &operator=(const Netlister &other) = delete;
+  EmbeddedPythonNetlister(const EmbeddedPythonNetlister &other) = delete;
+  EmbeddedPythonNetlister &operator=(const EmbeddedPythonNetlister &other) = delete;
 
-  static Netlister &GetInstance() {
-    static Netlister instance;
+  static EmbeddedPythonNetlister &GetInstance() {
+    static EmbeddedPythonNetlister instance;
     return instance;
   }
 
@@ -49,12 +49,12 @@ class Netlister {
       const std::filesystem::path &output_directory);
 
  private:
-  Netlister()
+  EmbeddedPythonNetlister()
     : py_thread_state_(nullptr) {
     InitialisePython();
     ConfigurePythonPostInit();
   }
-  ~Netlister() {
+  ~EmbeddedPythonNetlister() {
     DeinitialisePython();
   }
 
@@ -81,4 +81,4 @@ class Netlister {
 
 } // namespace spiceserver
 
-#endif // NETLISTER_H_
+#endif // EMBEDDED_PYTHON_NETLISTER_H_

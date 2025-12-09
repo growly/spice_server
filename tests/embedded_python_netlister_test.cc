@@ -1,4 +1,4 @@
-#include "netlister.h"
+#include "embedded_python_netlister.h"
 
 #include <filesystem>
 #include <fstream>
@@ -10,7 +10,7 @@
 namespace spiceserver {
 namespace {
 
-class NetlisterTest : public ::testing::Test {
+class EmbeddedPythonNetlisterTest : public ::testing::Test {
  protected:
   void SetUp() override {
     // Create a temporary directory for test outputs
@@ -18,7 +18,7 @@ class NetlisterTest : public ::testing::Test {
                 ("netlister_test_" + std::to_string(getpid()));
     std::filesystem::create_directories(test_dir_);
 
-    netlister_ = &Netlister::GetInstance();
+    netlister_ = &EmbeddedPythonNetlister::GetInstance();
   }
 
   void TearDown() override {
@@ -28,11 +28,11 @@ class NetlisterTest : public ::testing::Test {
     }
   }
 
-  Netlister *netlister_;
+  EmbeddedPythonNetlister *netlister_;
   std::filesystem::path test_dir_;
 };
 
-TEST_F(NetlisterTest, WritesProtobufToFile) {
+TEST_F(EmbeddedPythonNetlisterTest, WritesProtobufToFile) {
   // Create a simple SimInput protobuf
   vlsir::spice::SimInput sim_input;
   sim_input.set_top("test_top");
@@ -66,7 +66,7 @@ TEST_F(NetlisterTest, WritesProtobufToFile) {
   EXPECT_EQ(read_sim_input.pkg().domain(), "test_domain");
 }
 
-TEST_F(NetlisterTest, HandlesEmptySimInput) {
+TEST_F(EmbeddedPythonNetlisterTest, HandlesEmptySimInput) {
   // Create an empty SimInput protobuf
   vlsir::spice::SimInput sim_input;
 
@@ -85,7 +85,7 @@ TEST_F(NetlisterTest, HandlesEmptySimInput) {
   ASSERT_TRUE(read_sim_input.ParseFromIstream(&input_file));
 }
 
-TEST_F(NetlisterTest, WorksWithDifferentFlavours) {
+TEST_F(EmbeddedPythonNetlisterTest, WorksWithDifferentFlavours) {
   vlsir::spice::SimInput sim_input;
   sim_input.set_top("flavour_test");
 
@@ -111,7 +111,7 @@ TEST_F(NetlisterTest, WorksWithDifferentFlavours) {
   }
 }
 
-TEST_F(NetlisterTest, OverwritesExistingFile) {
+TEST_F(EmbeddedPythonNetlisterTest, OverwritesExistingFile) {
   vlsir::spice::SimInput first_input;
   first_input.set_top("first");
 
@@ -136,7 +136,7 @@ TEST_F(NetlisterTest, OverwritesExistingFile) {
   EXPECT_EQ(read_input.top(), "second");
 }
 
-TEST_F(NetlisterTest, CreatesDirectoryIfNeeded) {
+TEST_F(EmbeddedPythonNetlisterTest, CreatesDirectoryIfNeeded) {
   // Use a nested directory that doesn't exist yet
   auto nested_dir = test_dir_ / "nested" / "path" / "test";
   std::filesystem::create_directories(nested_dir);

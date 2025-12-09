@@ -1,4 +1,4 @@
-#include "netlister.h"
+#include "embedded_python_netlister.h"
 
 #include <unistd.h>
 #include <cstdlib>
@@ -24,7 +24,7 @@ DEFINE_string(python_vlsir, "../vlsir_repo/bindings/python",
 
 namespace spiceserver {
 
-void Netlister::InitialisePython() {
+void EmbeddedPythonNetlister::InitialisePython() {
   LOG(INFO) << "Starting Python";
   PyStatus py_status;
   PyConfig_InitPythonConfig(&py_config_);
@@ -34,7 +34,7 @@ void Netlister::InitialisePython() {
   }
 }
 
-void Netlister::ConfigurePythonPostInit() {
+void EmbeddedPythonNetlister::ConfigurePythonPostInit() {
   PyObject *py_path_list = PySys_GetObject("path");
   if (!py_path_list) {
     LOG(ERROR) << "Could not get Python \"path\" object";
@@ -55,40 +55,24 @@ void Netlister::ConfigurePythonPostInit() {
   PyList_Append(py_path_list, py_vlsir_str);
 }
 
-void Netlister::NewConfiguredPythonInterpreter() {
+void EmbeddedPythonNetlister::NewConfiguredPythonInterpreter() {
   DCHECK(py_thread_state_ == nullptr);
   py_thread_state_ = Py_NewInterpreter();
   ConfigurePythonPostInit();
 }
 
-void Netlister::EndPythonInterpreter() {
+void EmbeddedPythonNetlister::EndPythonInterpreter() {
   Py_EndInterpreter(py_thread_state_);
   py_thread_state_ = nullptr;
 }
 
-void Netlister::DeinitialisePython() {
+void EmbeddedPythonNetlister::DeinitialisePython() {
   LOG(INFO) << "Shutting down Python";
   PyConfig_Clear(&py_config_);
   Py_FinalizeEx();
 }
 
-// Calling Python directly vs. spawning a subprocess
-// =================================================
-//
-// It is both tempting and "neat" (as in "neato") to link against python
-// libraries already installed on the system and call the interpreter through
-// its API.
-//
-// But some python libraries (*COUGH* numpy *COUGH*), which have their
-// own DLLs, do not behave well when being unloaded/loaded/reloaded between
-// successive invocations of the interpreter. As a 
-//
-// Run python3-config --cflags to figure out where this is, or (better) use the
-// cmake Python package to locate it for the build:
-//
-// #include <python3.11/Python.h>
-
-std::vector<std::filesystem::path> Netlister::WriteSim(
+std::vector<std::filesystem::path> EmbeddedPythonNetlister::WriteSim(
     const vlsir::spice::SimInput &sim_input_pb,
     const Flavour &spice_flavour,
     const std::filesystem::path &output_directory) {
@@ -142,7 +126,7 @@ std::vector<std::filesystem::path> Netlister::WriteSim(
   return {out_file_name};
 }
 
-std::vector<std::filesystem::path> Netlister::WriteSpice(
+std::vector<std::filesystem::path> EmbeddedPythonNetlister::WriteSpice(
     const vlsir::circuit::Package &circuit_pb,
     const Flavour &spice_flavour,
     const std::filesystem::path &output_directory) {

@@ -198,7 +198,7 @@ add_executable(spice_server
   src/simulator_manager.cc
   src/simulator_registry.cc
   src/subprocess.cc
-  src/netlister.cc
+  src/embedded_python_netlister.cc
 )
 
 target_include_directories(
@@ -237,8 +237,8 @@ include(GoogleTest)
 
 add_executable(spice_server_test
   tests/main_test.cc
-  tests/netlister_test.cc
-  src/netlister.cc
+  tests/embedded_python_netlister_test.cc
+  src/embedded_python_netlister.cc
 )
 
 target_include_directories(spice_server_test

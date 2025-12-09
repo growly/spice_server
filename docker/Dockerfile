@@ -28,7 +28,9 @@ apt install -y \
   libc-ares-dev \
   python3-full \
   python3-pandas \
-  python3-numpy
+  python3-numpy \
+  python3-grpcio \
+  python3-grpc-tools
 EOF
 
 # Add development dependencies for spice_server.
