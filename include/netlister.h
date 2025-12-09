@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include <python3.11/Python.h>
+#include <Python.h>
 #include <absl/status/statusor.h>
 
 #include "simulator_registry.h"

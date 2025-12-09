@@ -204,6 +204,7 @@ add_executable(spice_server
 target_include_directories(
   spice_server
   PRIVATE
+    ${Python_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
     ${VLSIR_OUT_DIR}

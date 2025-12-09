@@ -6,8 +6,7 @@
 #include <fstream>
 #include <string>
 
-// Run python3.11-config --cflags to figure out where this is.
-#include <python3.11/Python.h>
+#include <Python.h>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -72,6 +71,16 @@ void Netlister::DeinitialisePython() {
   PyConfig_Clear(&py_config_);
   Py_FinalizeEx();
 }
+
+// Calling Python directly vs. spawning a subprocess
+// =================================================
+//
+// It is both tempting and "neat" (as in "neato") to link against python
+// libraries already installed on the system and call the interpreter through
+// its API.
+//
+// Run python3.11-config --cflags to figure out where this is.
+// #include <python3.11/Python.h>
 
 std::vector<std::filesystem::path> Netlister::WriteSim(
     const vlsir::spice::SimInput &sim_input_pb,
