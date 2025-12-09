@@ -6,12 +6,17 @@
 #include <unistd.h>
 #include <cstring>
 #include <filesystem>
+#include <csignal>
 
 #include <array>
 #include <glog/logging.h>
 
 #include <absl/status/status.h>
 #include <absl/strings/str_join.h>
+
+void sigint_handler(int value) {
+  std::cout << "Caught signal: " << strsignal(value) << std::endl;
+}
 
 namespace spiceserver {
 
@@ -105,6 +110,11 @@ absl::Status Subprocess::Spawn(
     LOG(ERROR) << "Failed to execute command: " << strerror(errno);
     _exit(1);
   }
+
+  // If I don't do this, ^C doesn't work:
+  struct sigaction action;
+  action.sa_handler = &sigint_handler;
+  sigaction(SIGINT, &action, nullptr);
 
   std::vector<std::string> full_command(args.begin(), args.end());
   full_command.insert(full_command.begin(), command);
