@@ -79,7 +79,13 @@ void Netlister::DeinitialisePython() {
 // libraries already installed on the system and call the interpreter through
 // its API.
 //
-// Run python3.11-config --cflags to figure out where this is.
+// But some python libraries (*COUGH* numpy *COUGH*), which have their
+// own DLLs, do not behave well when being unloaded/loaded/reloaded between
+// successive invocations of the interpreter. As a 
+//
+// Run python3-config --cflags to figure out where this is, or (better) use the
+// cmake Python package to locate it for the build:
+//
 // #include <python3.11/Python.h>
 
 std::vector<std::filesystem::path> Netlister::WriteSim(

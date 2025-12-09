@@ -7,14 +7,17 @@
 #include <string>
 #include <vector>
 
+// Run python3-config --cflags to figure out where this is, or (better) use the
+// cmake Python package to locate the include directory for the build:
+// #include <python3.11/Python.h>
 #include <Python.h>
+
 #include <absl/status/statusor.h>
 
 #include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"
 #include "vlsir/spice.pb.h"
 
-// 
 // We use a singleton so that we can can cleanly initialise the python
 // interpreter and also destroy it at the end of the program. (It turns out
 // that it's not possible to correctly initialize and de-initialize it when
