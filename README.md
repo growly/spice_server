@@ -6,6 +6,10 @@ A gRPC service for executing SPICE circuit simulations via various simulators as
 
 SpiceServer accepts gRPC requests containing SPICE netlists and executes them using the specified simulator (e.g., ngspice, Xyce, LTspice). Results are streamed back to the client in real-time.
 
+## Simulator support
+
+Xyce
+
 ## Prerequisites
 
 - CMake 3.15 or higher
@@ -103,12 +107,3 @@ program. For now, the python scripts are pulled in directly from the vlsir_repo
 submodule in this repo. An alternative would to make them available as
 system-wide (or user-wide, or venv-wide) packages instead.
 
-## TODO
-
-I'm putting this here because I am on a plane and I can't be opening issues without paying United more money.
-
-1. Need to tidy up how subprocesses are spawned: we're limited by dependencies on `numpy` to one interpreter session for all runs (it doesn't seem to like its DLLs being unloaded/loaded again). Seems safer to just fork and run python directly instead. (This is very silly.)
-1. With (pending) changes to VlsirTools netlisters, Xyce, Spectre spice decks are handled. What about ngspice, others?
-1. There are gaps in which analysis methods are supported by which simulators. This is probably documents for Hdl21/VLSIR and applies here too.
-1. Results need to be parsed and returned in a SimResult. This will probably have to be implemented per simulator too. Xyce can write CSV and has a separate output file for all `.measure` statements. `Hdl21` implements some version of this already.
-1. It would be nice if the example client could handle more Hdl21 modules than just the single baked-in example.
