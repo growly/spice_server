@@ -10,7 +10,7 @@
 
 #include "utility.h"
 
-#include "netlister.h"
+#include "embedded_python_netlister.h"
 #include "simulator_service.h"
 #include "simulator_registry.h"
 #include "proto/spice_simulator.pb.h"

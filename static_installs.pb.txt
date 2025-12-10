@@ -4,5 +4,5 @@ installed {
   flavours: XYCE
   flavours: XYCE_7_10
   license: ""
-  path: "/home/arya/XyceInstall/Serial/bin/Xyce"
+  path: "/pkg/XyceInstall/Serial/bin/Xyce"
 }

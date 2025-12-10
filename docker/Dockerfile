@@ -182,7 +182,8 @@ RUN /pkg/python3-ciel/bin/ciel enable --pdk-family sky130 486fb8633c3d95ae475a5c
 RUN /pkg/python3-ciel/bin/ciel enable --pdk-family gf180mcu 486fb8633c3d95ae475a5ccd68d0066c25919bb5
 
 # Build and install spice_server.
-ADD https://github.com/growly/spice_server /pkg/
+WORKDIR /pkg
+RUN git clone --recursive https://github.com/growly/spice_server.git
 
 
 
