@@ -1,6 +1,6 @@
 ; First line is special
 
-.lib /home/arya/.volare/sky130A/libs.tech/ngspice/sky130.lib.spice tt
+.lib /pdk/sky130A/libs.tech/ngspice/sky130.lib.spice tt
 
 .include inverter.sp
 
